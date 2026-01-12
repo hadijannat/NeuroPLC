@@ -1,0 +1,91 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: neuroplc-spine
+  labels:
+    app: neuroplc
+    component: spine
+spec:
+  replicas: 1  # Single replica for real-time control
+  strategy:
+    type: Recreate  # No rolling update - avoid dual control
+  selector:
+    matchLabels:
+      app: neuroplc
+      component: spine
+  template:
+    metadata:
+      labels:
+        app: neuroplc
+        component: spine
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+      containers:
+        - name: spine
+          image: neuroplc/spine:latest
+          args:
+            - "--bind"
+            - "0.0.0.0:7000"
+            - "--opcua"
+            - "--metrics-addr"
+            - "0.0.0.0:9090"
+          ports:
+            - containerPort: 7000
+              name: bridge
+            - containerPort: 4840
+              name: opcua
+            - containerPort: 9090
+              name: metrics
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "256Mi"
+            limits:
+              cpu: "2000m"
+              memory: "512Mi"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: metrics
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: metrics
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          volumeMounts:
+            - name: tls-certs
+              mountPath: /etc/neuroplc/tls
+              readOnly: true
+            - name: audit-logs
+              mountPath: /var/log/neuroplc
+      volumes:
+        - name: tls-certs
+          secret:
+            secretName: neuroplc-tls
+        - name: audit-logs
+          persistentVolumeClaim:
+            claimName: neuroplc-audit-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: neuroplc-spine
+spec:
+  selector:
+    app: neuroplc
+    component: spine
+  ports:
+    - name: bridge
+      port: 7000
+    - name: opcua
+      port: 4840
+    - name: metrics
+      port: 9090

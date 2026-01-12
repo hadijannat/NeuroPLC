@@ -7,16 +7,47 @@ import hashlib
 from typing import Optional
 
 from digital_twin import BasyxAdapter, BasyxConfig
+from pathlib import Path
+try:
+    from agent.ml_inference import MLRecommendationEngine, SafetyBoundedRecommender
+except ImportError:
+    print("Warning: ML modules not found. Running in rule-based mode.")
+    MLRecommendationEngine = None
+    SafetyBoundedRecommender = None
 
-def compute_recommendation(state: dict, attack_mode: bool, cycle: int) -> tuple[Optional[float], float, str, dict]:
+def compute_recommendation(
+    state: dict, 
+    attack_mode: bool, 
+    cycle: int,
+    recommender: Optional[object] = None
+) -> tuple[Optional[float], float, str, dict]:
     speed = float(state.get("motor_speed_rpm", 0.0))
     temp = float(state.get("motor_temp_c", 0.0))
+    pressure = float(state.get("pressure_bar", 0.0))
+    
+    # Track history (mock for now, in prod use a sliding window buffer)
+    speed_hist = [speed] 
+    temp_hist = [temp]
 
     if attack_mode and cycle % 10 == 0:
         target = 5000.0
         confidence = 0.2
         analysis = "attack_mode: requesting unsafe speed to test firewall"
+        envelope = {
+            "analysis": analysis,
+            "target_speed_rpm": target,
+            "model": "attack-v1",
+        }
+    elif recommender:
+        # ML Inference
+        target, confidence, envelope = recommender.recommend(
+            speed, temp, pressure, speed_hist, temp_hist
+        )
+        analysis = f"ML-based recommendation (conf={confidence:.2f})"
+        envelope["analysis"] = analysis
+        envelope["model"] = "onnx-v1"
     else:
+        # Rule-based fallback
         if temp > 70.0:
             target = max(speed - 200.0, 0.0)
             confidence = 0.9
@@ -29,18 +60,21 @@ def compute_recommendation(state: dict, attack_mode: bool, cycle: int) -> tuple[
             target = speed
             confidence = 0.8
             analysis = "maintain speed"
+            
+        envelope = {
+            "analysis": analysis,
+            "target_speed_rpm": target,
+            "model": "rule-v1",
+        }
 
-    envelope = {
-        "analysis": analysis,
-        "state": {
-            "motor_speed_rpm": speed,
-            "motor_temp_c": temp,
-            "pressure_bar": float(state.get("pressure_bar", 0.0)),
-            "timestamp_us": int(state.get("timestamp_us", 0)),
-        },
-        "target_speed_rpm": target,
-        "model": "rule-v1",
+    # Common envelope fields
+    envelope["state"] = {
+        "motor_speed_rpm": speed,
+        "motor_temp_c": temp,
+        "pressure_bar": pressure,
+        "timestamp_us": int(state.get("timestamp_us", 0)),
     }
+    
     return target, confidence, analysis, envelope
 
 
@@ -49,7 +83,22 @@ def hash_envelope(envelope: dict) -> str:
     return hashlib.sha256(encoded).hexdigest()
 
 
-def run(host: str, port: int, attack_mode: bool):
+def run(host: str, port: int, attack_mode: bool, model_path: Optional[str] = None):
+    # Initialize ML engine
+    recommender = None
+    if model_path and MLRecommendationEngine:
+        p = Path(model_path)
+        if p.exists():
+            try:
+                print(f"Loading ML model from {p}...")
+                engine = MLRecommendationEngine(p)
+                recommender = SafetyBoundedRecommender(engine)
+                print("ML model loaded successfully.")
+            except Exception as e:
+                print(f"Failed to load ML model: {e}")
+        else:
+            print(f"Model file not found: {p}")
+            
     addr = (host, port)
     cycle = 0
     basyx_adapter = None
@@ -93,7 +142,7 @@ def run(host: str, port: int, attack_mode: bool):
                             print(f"BaSyx init failed: {exc}")
 
                     target, confidence, analysis, envelope = compute_recommendation(
-                        state, attack_mode, cycle
+                        state, attack_mode, cycle, recommender
                     )
                     reasoning_hash = hash_envelope(envelope)
 
@@ -139,9 +188,10 @@ def main():
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=7000)
     parser.add_argument("--attack-mode", action="store_true")
+    parser.add_argument("--model", type=str, default="models/neuro_v1.onnx", help="Path to ONNX model")
     args = parser.parse_args()
 
-    run(args.host, args.port, args.attack_mode)
+    run(args.host, args.port, args.attack_mode, args.model)
 
 
 if __name__ == "__main__":

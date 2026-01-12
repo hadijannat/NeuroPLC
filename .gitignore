@@ -4,3 +4,6 @@
 .venv/
 pki/
 *.rrd
+AGENTS.md
+CLAUDE.md
+.claude/

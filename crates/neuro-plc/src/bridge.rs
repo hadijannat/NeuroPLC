@@ -1,14 +1,20 @@
+use crate::auth::{AuthConfig, TokenValidator};
+use crate::metrics::{AGENT_CONFIDENCE, AGENT_TARGET_RPM, BRIDGE_CONNECTED};
 use crate::protocol::{IncomingMessage, StateMsg};
+use crate::tls::{build_server_config, TlsConfig};
 use core_spine::{AgentRecommendation, StateExchange, TimeBase};
-use log::{info, warn};
+use rustls::{ServerConnection, StreamOwned};
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::sync::{atomic::AtomicBool, Arc};
 use std::time::{Duration, Instant};
+use tracing::{debug, error, info, instrument, warn, Span};
 
 pub struct BridgeConfig {
     pub bind_addr: String,
     pub publish_interval: Duration,
+    pub tls: TlsConfig,
+    pub auth: AuthConfig,
 }
 
 impl Default for BridgeConfig {
@@ -16,6 +22,38 @@ impl Default for BridgeConfig {
         Self {
             bind_addr: "127.0.0.1:7000".to_string(),
             publish_interval: Duration::from_millis(100),
+            tls: TlsConfig::default(),
+            auth: AuthConfig::default(),
+        }
+    }
+}
+
+enum BridgeStream {
+    Plain(TcpStream),
+    Tls(Box<StreamOwned<ServerConnection, TcpStream>>),
+}
+
+impl Read for BridgeStream {
+    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+        match self {
+            BridgeStream::Plain(s) => s.read(buf),
+            BridgeStream::Tls(s) => s.read(buf),
+        }
+    }
+}
+
+impl Write for BridgeStream {
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+        match self {
+            BridgeStream::Plain(s) => s.write(buf),
+            BridgeStream::Tls(s) => s.write(buf),
+        }
+    }
+
+    fn flush(&mut self) -> std::io::Result<()> {
+        match self {
+            BridgeStream::Plain(s) => s.flush(),
+            BridgeStream::Tls(s) => s.flush(),
         }
     }
 }
@@ -32,9 +70,32 @@ pub fn run_bridge(
         .set_nonblocking(true)
         .expect("Failed to set nonblocking");
 
-    info!("Bridge listening on {}", config.bind_addr);
+    info!(
+        addr = %config.bind_addr,
+        tls = config.tls.enabled,
+        auth = config.auth.enabled,
+        "Bridge listening"
+    );
 
-    let mut client: Option<TcpStream> = None;
+    let tls_config = if config.tls.enabled {
+        match build_server_config(&config.tls) {
+            Ok(c) => Some(c),
+            Err(e) => {
+                error!(error = %e, "Failed to configure TLS");
+                return;
+            }
+        }
+    } else {
+        None
+    };
+
+    let validator = if config.auth.enabled {
+        Some(TokenValidator::from_config(&config.auth))
+    } else {
+        None
+    };
+
+    let mut client: Option<BridgeStream> = None;
     let mut recv_buf: Vec<u8> = Vec::with_capacity(4096);
     let mut last_publish = Instant::now();
 
@@ -45,11 +106,26 @@ pub fn run_bridge(
         if client.is_none() {
             match listener.accept() {
                 Ok((stream, addr)) => {
-                    info!("Bridge client connected from {}", addr);
+                    info!(client_addr = %addr, "Bridge client connected");
                     stream
                         .set_nonblocking(true)
                         .expect("Failed to set nonblocking on client");
-                    client = Some(stream);
+
+                    if let Some(tls_cfg) = &tls_config {
+                        match ServerConnection::new(tls_cfg.clone()) {
+                            Ok(conn) => {
+                                client = Some(BridgeStream::Tls(Box::new(StreamOwned::new(
+                                    conn, stream,
+                                ))));
+                            }
+                            Err(e) => {
+                                error!("Failed to create TLS connection state: {}", e);
+                            }
+                        }
+                    } else {
+                        client = Some(BridgeStream::Plain(stream));
+                    }
+                    BRIDGE_CONNECTED.set(1.0);
                 }
                 Err(err) if err.kind() == std::io::ErrorKind::WouldBlock => {}
                 Err(err) => {
@@ -66,6 +142,7 @@ pub fn run_bridge(
                 Ok(0) => {
                     info!("Bridge client disconnected");
                     drop_client = true;
+                    BRIDGE_CONNECTED.set(0.0);
                 }
                 Ok(n) => {
                     recv_buf.extend_from_slice(&temp[..n]);
@@ -77,15 +154,16 @@ pub fn run_bridge(
                                 continue;
                             }
                             if let Some(msg) = IncomingMessage::parse(trimmed) {
-                                handle_incoming(msg, &exchange, &timebase);
+                                handle_incoming(msg, &exchange, &timebase, &validator);
                             }
                         }
                     }
                 }
                 Err(err) if err.kind() == std::io::ErrorKind::WouldBlock => {}
                 Err(err) => {
-                    warn!("Bridge read error: {}", err);
+                    warn!(error = %err, "Bridge read error");
                     drop_client = true;
+                    BRIDGE_CONNECTED.set(0.0);
                 }
             }
 
@@ -103,11 +181,13 @@ pub fn run_bridge(
                 };
                 if let Ok(line) = serde_json::to_string(&msg) {
                     if let Err(err) = stream.write_all(line.as_bytes()) {
-                        warn!("Bridge write error: {}", err);
+                        warn!(error = %err, "Bridge write error");
                         drop_client = true;
+                        BRIDGE_CONNECTED.set(0.0);
                     } else if let Err(err) = stream.write_all(b"\n") {
-                        warn!("Bridge write error: {}", err);
+                        warn!(error = %err, "Bridge write error");
                         drop_client = true;
+                        BRIDGE_CONNECTED.set(0.0);
                     }
                 }
                 last_publish = Instant::now();
@@ -123,14 +203,37 @@ pub fn run_bridge(
     }
 }
 
-fn handle_incoming(msg: IncomingMessage, exchange: &StateExchange, timebase: &TimeBase) {
+#[instrument(skip(exchange, timebase, validator), fields(reasoning_hash))]
+fn handle_incoming(
+    msg: IncomingMessage,
+    exchange: &StateExchange,
+    timebase: &TimeBase,
+    validator: &Option<TokenValidator>,
+) {
     match msg {
         IncomingMessage::Recommendation(rec) => {
-            let _client_unix = rec.client_unix_us;
+            Span::current().record("reasoning_hash", rec.reasoning_hash.as_str());
+
+            // Check authentication
+            if let Some(val) = validator {
+                match &rec.auth_token {
+                    Some(token) => {
+                        if let Err(e) = val.validate(token) {
+                            warn!(error = %e, "Invalid auth token");
+                            return;
+                        }
+                    }
+                    None => {
+                        warn!("Missing auth token");
+                        return;
+                    }
+                }
+            }
+
             let hash = match hex_to_32(&rec.reasoning_hash) {
                 Some(h) => h,
                 None => {
-                    warn!("Invalid reasoning_hash hex length");
+                    warn!(hash = %rec.reasoning_hash, "Invalid reasoning_hash hex length");
                     return;
                 }
             };
@@ -138,14 +241,29 @@ fn handle_incoming(msg: IncomingMessage, exchange: &StateExchange, timebase: &Ti
             let target = rec.target_speed_rpm;
             if let Some(val) = target {
                 if !val.is_finite() {
-                    warn!("Ignoring non-finite recommendation");
+                    warn!(value = %val, "Ignoring non-finite recommendation");
                     return;
                 }
             }
             if !(0.0..=1.0).contains(&rec.confidence) {
-                warn!("Ignoring recommendation with invalid confidence");
+                warn!(
+                    confidence = rec.confidence,
+                    "Ignoring recommendation with invalid confidence"
+                );
                 return;
             }
+
+            // Update metrics
+            if let Some(target_val) = target {
+                AGENT_TARGET_RPM.set(target_val);
+            }
+            AGENT_CONFIDENCE.set(rec.confidence as f64);
+
+            debug!(
+                target_speed = ?target,
+                confidence = rec.confidence,
+                "Recommendation received"
+            );
 
             let stamped = AgentRecommendation {
                 timestamp_us: timebase.now_us(),

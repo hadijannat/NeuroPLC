@@ -15,4 +15,4 @@ thiserror = { workspace = true }
 log = { workspace = true }
 
 [dev-dependencies]
-# No extra dev deps yet
+proptest = "1.4"

@@ -1,11 +1,12 @@
 #![cfg(feature = "opcua")]
 
 use core_spine::{StateExchange, TimeBase};
-use log::{info, warn};
+use opcua::server::config::{ServerEndpoint, ServerUserToken, ANONYMOUS_USER_TOKEN_ID};
 use opcua::server::prelude::*;
 use std::sync::{atomic::AtomicBool, Arc};
 use std::thread;
 use std::time::Duration;
+use tracing::{info, warn};
 
 #[derive(Clone, Debug)]
 pub struct OpcuaConfig {
@@ -30,15 +31,34 @@ pub fn run_opcua(
 ) -> thread::JoinHandle<()> {
     let (host, port) = parse_endpoint(&config.endpoint);
 
-    let mut server_config = ServerBuilder::new_anonymous("NeuroPLC OPC UA")
+    let anon_tokens = vec![ANONYMOUS_USER_TOKEN_ID.to_string()];
+    let secure_tokens = vec![ANONYMOUS_USER_TOKEN_ID.to_string(), "admin".to_string()];
+
+    let server_config = ServerBuilder::new()
+        .application_name("NeuroPLC OPC UA")
         .application_uri("urn:neuroplc:opcua")
         .product_uri("urn:neuroplc:opcua")
+        .create_sample_keypair(true)
+        .pki_dir("./pki-server")
+        .host_and_port(host.clone(), port)
+        .max_array_length(100_000)
+        .max_string_length(64 * 1024)
+        .max_byte_string_length(4 * 1024 * 1024)
+        .max_message_size(4 * 1024 * 1024)
+        .max_chunk_count(128)
+        .user_token(
+            "admin",
+            ServerUserToken::user_pass("admin", "neuroplc-secret"),
+        )
+        .endpoints(vec![
+            ("none", ServerEndpoint::new_none("/", &anon_tokens)),
+            (
+                "basic256sha256_sign_encrypt",
+                ServerEndpoint::new_basic256sha256_sign_encrypt("/", &secure_tokens),
+            ),
+        ])
+        .discovery_urls(vec!["/".to_string()])
         .config();
-
-    server_config.create_sample_keypair = true;
-
-    server_config.tcp_config.host = host;
-    server_config.tcp_config.port = port;
 
     let server = Server::new(server_config);
     let address_space = server.address_space();

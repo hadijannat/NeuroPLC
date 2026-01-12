@@ -19,7 +19,10 @@ pub struct RecommendationMsg {
     pub target_speed_rpm: Option<f64>,
     pub confidence: f32,
     pub reasoning_hash: String,
+    #[allow(dead_code)]
     pub client_unix_us: Option<u64>,
+    #[allow(dead_code)]
+    pub auth_token: Option<String>,
 }
 
 #[derive(Debug)]

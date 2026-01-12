@@ -19,6 +19,13 @@ class BasyxConfig:
     ai_semantic_id: str = "urn:neuroplc:sm:AIRecommendation:1:0"
     safety_semantic_id: str = "urn:neuroplc:sm:SafetyParameters:1:0"
     timeout_s: float = 2.0
+    
+    # IDTA Submodel Config
+    nameplate_submodel_id: str = "urn:neuroplc:sm:nameplate:001"
+    nameplate_semantic_id: str = "https://admin-shell.io/idta/nameplate/3/0/Nameplate"
+    
+    func_safety_submodel_id: str = "urn:neuroplc:sm:functional-safety:001"
+    func_safety_semantic_id: str = "0112/2///62683#ACC007#001"
 
 
 class BasyxAdapter:
@@ -64,10 +71,69 @@ class BasyxAdapter:
             ],
             semantic_id=self.config.safety_semantic_id,
         )
+        
+        # IDTA Digital Nameplate
+        self._ensure_submodel(
+            self.config.nameplate_submodel_id,
+            "Nameplate",
+            [
+                {
+                    "idShort": "ManufacturerName",
+                    "modelType": "MultiLanguageProperty",
+                    "value": [
+                        {"language": "en", "text": "NeuroPLC Project"},
+                        {"language": "de", "text": "NeuroPLC Projekt"}
+                    ],
+                    "semanticId": {"keys": [{"type": "CONCEPT_DESCRIPTION", "value": "0173-1#02-AAO677#002"}]}
+                },
+                self._prop("SerialNumber", "STRING", "NPLC-2024-001"),
+                self._prop("YearOfConstruction", "STRING", "2024"),
+                {
+                    "idShort": "ContactInformation",
+                    "modelType": "SubmodelElementCollection",
+                    "value": [
+                         self._prop("RoleOfContactPerson", "STRING", "technical support"),
+                         self._prop("Email", "STRING", "support@neuroplc.example"),
+                    ]
+                }
+            ],
+            semantic_id=self.config.nameplate_semantic_id,
+        )
+
+        # IDTA Functional Safety
+        self._ensure_submodel(
+            self.config.func_safety_submodel_id,
+            "FunctionalSafety",
+            [
+                self._prop("SafetyIntegrityLevel", "STRING", "SIL2"),
+                {
+                    "idShort": "SafetyFunction",
+                    "modelType": "SubmodelElementCollection",
+                    "value": [
+                        self._prop("Name", "STRING", "OverspeedProtection"),
+                        self._prop("Description", "STRING", "Prevents motor speed > 3000 RPM"),
+                        self._prop("TriggerCondition", "STRING", "speed_rpm > 3000"),
+                        self._prop("SafeState", "STRING", "Reject setpoint"),
+                    ]
+                },
+                {
+                    "idShort": "TemperatureInterlockFunction",
+                    "modelType": "SubmodelElementCollection",
+                    "value": [
+                        self._prop("Name", "STRING", "TemperatureInterlock"),
+                        self._prop("TriggerCondition", "STRING", "motor_temp_c > 80"),
+                        self._prop("SafeState", "STRING", "Block speed increase"),
+                    ]
+                }
+            ],
+            semantic_id=self.config.func_safety_semantic_id,
+        )
 
         self._ensure_submodel_link(self.config.operational_submodel_id)
         self._ensure_submodel_link(self.config.ai_submodel_id)
         self._ensure_submodel_link(self.config.safety_submodel_id)
+        self._ensure_submodel_link(self.config.nameplate_submodel_id)
+        self._ensure_submodel_link(self.config.func_safety_submodel_id)
 
     def update_operational(self, state: dict, cycle_count: int, is_healthy: bool) -> None:
         submodel_id = self.config.operational_submodel_id

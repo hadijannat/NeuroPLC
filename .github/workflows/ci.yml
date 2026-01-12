@@ -22,10 +22,11 @@ jobs:
         run: cargo check -p neuro-plc --features opcua
       - name: OPC UA smoke
         run: |
-          cargo run --release --features opcua --bin neuro-plc -- --opcua --no-bridge --run-seconds 5 &
+          cargo build --release --features opcua --bin neuro-plc --bin opcua_smoke
+          target/release/neuro-plc --opcua --no-bridge --run-seconds 5 &
           SERVER_PID=$!
           sleep 1
-          cargo run --release --features opcua --bin opcua_smoke -- opc.tcp://127.0.0.1:4840
+          target/release/opcua_smoke opc.tcp://127.0.0.1:4840
           wait $SERVER_PID
       - name: Rerun compile check
         run: cargo check -p neuro-plc --features rerun

@@ -9,14 +9,41 @@ default-run = "neuro-plc"
 default = []
 opcua = ["dep:opcua"]
 rerun = ["dep:rerun"]
+dev-certs = ["dep:rcgen"]
 
 [dependencies]
 core-spine = { path = "../core-spine" }
-log = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
+thiserror = { workspace = true }
+
+# Logging/Tracing
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+tracing-appender = { workspace = true }
+
+# Metrics
+prometheus = { workspace = true }
+tiny_http = { workspace = true }
+
+# TLS
+rustls = { workspace = true }
+rustls-pemfile = { workspace = true }
+
+# Auth
+hmac = { workspace = true }
+sha2 = { workspace = true }
+base64 = { workspace = true }
+
+# Modbus
+tokio = { workspace = true }
+tokio-modbus = { workspace = true }
+futures = { workspace = true }
+
+# Optional features
 opcua = { version = "0.12", optional = true }
 rerun = { version = "0.18", optional = true }
+rcgen = { version = "0.13", optional = true }
 
-[dependencies.env_logger]
-version = "0.11"
+[dev-dependencies]
+tempfile = "3"

@@ -1,12 +1,12 @@
 #![cfg(feature = "rerun")]
 
 use core_spine::{StateExchange, TimeBase};
-use log::{info, warn};
 use rerun::{RecordingStream, RecordingStreamBuilder, Scalar};
 use std::path::PathBuf;
 use std::sync::{atomic::AtomicBool, Arc};
 use std::thread;
 use std::time::Duration;
+use tracing::{info, warn};
 
 #[derive(Clone, Debug)]
 pub struct RerunConfig {

@@ -1,0 +1,62 @@
+services:
+  neuroplc:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    image: neuroplc:latest
+    container_name: neuroplc
+    ports:
+      - "7000:7000" # Bridge TCP
+      - "4840:4840" # OPC UA
+      - "9090:9090" # Metrics/Health
+    environment:
+      - RUST_LOG=info
+      - BASYX_URL=http://basyx:8081
+      - BASYX_AAS_ID=urn:neuroplc:aas:motor:001
+      - BASYX_ASSET_ID=urn:neuroplc:asset:motor:001
+      - PYTHON_CORTEX_HOST=0.0.0.0
+      - PYTHON_CORTEX_PORT=7000
+    depends_on:
+      basyx:
+        condition: service_healthy
+    networks:
+      - industrial-net
+
+  basyx:
+    image: eclipsebasyx/aas-gui:v2
+    container_name: basyx-gui
+    ports:
+      - "8081:8081"
+    environment:
+      - BASYX_HOST=0.0.0.0
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8081/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - industrial-net
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./config/prometheus.yml:/etc/prometheus/prometheus.yml
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+    networks:
+      - industrial-net
+
+  rerun:
+    image: rerun/rerun:latest
+    container_name: rerun
+    ports:
+      - "9876:9876"
+    networks:
+      - industrial-net
+
+networks:
+  industrial-net:
+    driver: bridge
