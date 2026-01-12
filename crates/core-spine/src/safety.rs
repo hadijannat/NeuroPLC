@@ -22,12 +22,29 @@ pub struct SafetyLimits {
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum SafetyViolation {
-    NonFiniteSetpoint { requested: f64 },
-    NonFiniteSensor { current_speed: f64, current_temp: f64 },
-    ExceedsMaxSpeed { requested: f64, limit: f64 },
-    BelowMinSpeed { requested: f64, limit: f64 },
-    RateOfChangeTooHigh { delta: f64, limit: f64 },
-    TemperatureInterlock { current_temp: f64, limit: f64 },
+    NonFiniteSetpoint {
+        requested: f64,
+    },
+    NonFiniteSensor {
+        current_speed: f64,
+        current_temp: f64,
+    },
+    ExceedsMaxSpeed {
+        requested: f64,
+        limit: f64,
+    },
+    BelowMinSpeed {
+        requested: f64,
+        limit: f64,
+    },
+    RateOfChangeTooHigh {
+        delta: f64,
+        limit: f64,
+    },
+    TemperatureInterlock {
+        current_temp: f64,
+        limit: f64,
+    },
 }
 
 impl Setpoint<Unvalidated> {
@@ -113,7 +130,10 @@ mod tests {
     #[test]
     fn rejects_nan_setpoint() {
         let res = Setpoint::new(f64::NAN).validate(&limits(), 0.0, 25.0);
-        assert!(matches!(res, Err(SafetyViolation::NonFiniteSetpoint { .. })));
+        assert!(matches!(
+            res,
+            Err(SafetyViolation::NonFiniteSetpoint { .. })
+        ));
     }
 
     #[test]

@@ -49,7 +49,12 @@ pub struct IronThread<IO: MachineIO> {
 }
 
 impl<IO: MachineIO> IronThread<IO> {
-    pub fn new(io: IO, config: ControlConfig, exchange: Arc<StateExchange>, timebase: TimeBase) -> Self {
+    pub fn new(
+        io: IO,
+        config: ControlConfig,
+        exchange: Arc<StateExchange>,
+        timebase: TimeBase,
+    ) -> Self {
         Self {
             io,
             config,
@@ -106,11 +111,8 @@ impl<IO: MachineIO> IronThread<IO> {
 
             // Safety validation
             let raw_setpoint = Setpoint::new(target_speed);
-            let validated = raw_setpoint.validate(
-                &self.config.safety_limits,
-                current_speed,
-                current_temp,
-            );
+            let validated =
+                raw_setpoint.validate(&self.config.safety_limits, current_speed, current_temp);
 
             let output_speed = match validated {
                 Ok(safe_setpoint) => {

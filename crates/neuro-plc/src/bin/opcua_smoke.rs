@@ -77,9 +77,7 @@ mod enabled {
             data_encoding: QualifiedName::null(),
         };
         let mut values = session.read(&[read_value], TimestampsToReturn::Both, 0.0)?;
-        values
-            .pop()
-            .ok_or(StatusCode::BadUnexpectedError)
+        values.pop().ok_or(StatusCode::BadUnexpectedError)
     }
 }
 

@@ -62,12 +62,18 @@ fn log_snapshot(rec: &RecordingStream, exchange: &StateExchange, timebase: &Time
     let _ = rec.log("motor/speed/actual", &Scalar::new(snapshot.motor_speed_rpm));
     let _ = rec.log("motor/temperature", &Scalar::new(snapshot.motor_temp_c));
     let _ = rec.log("motor/pressure", &Scalar::new(snapshot.pressure_bar));
-    let _ = rec.log("system/cycle_jitter_us", &Scalar::new(snapshot.cycle_jitter_us as f64));
+    let _ = rec.log(
+        "system/cycle_jitter_us",
+        &Scalar::new(snapshot.cycle_jitter_us as f64),
+    );
 
     if let Some(rec_msg) = exchange.get_recommendation(timebase.now_us()) {
         if let Some(target) = rec_msg.target_speed_rpm {
             let _ = rec.log("motor/speed/agent_target", &Scalar::new(target));
         }
-        let _ = rec.log("motor/agent/confidence", &Scalar::new(rec_msg.confidence as f64));
+        let _ = rec.log(
+            "motor/agent/confidence",
+            &Scalar::new(rec_msg.confidence as f64),
+        );
     }
 }

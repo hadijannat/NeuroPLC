@@ -7,7 +7,9 @@ pub struct TimeBase {
 
 impl TimeBase {
     pub fn new() -> Self {
-        Self { start: Instant::now() }
+        Self {
+            start: Instant::now(),
+        }
     }
 
     /// Monotonic microseconds since start.

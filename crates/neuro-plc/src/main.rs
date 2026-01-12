@@ -1,20 +1,20 @@
 mod bridge;
-mod protocol;
 #[cfg(feature = "opcua")]
 mod opcua_server;
+mod protocol;
 #[cfg(feature = "rerun")]
 mod rerun_viz;
 
 use bridge::{run_bridge, BridgeConfig};
 use core_spine::{ControlConfig, IronThread, SimulatedMotor, StateExchange, TimeBase};
 use log::info;
-use std::sync::{atomic::AtomicBool, Arc};
-use std::thread;
-use std::time::Duration;
 #[cfg(feature = "opcua")]
 use opcua_server::{run_opcua, OpcuaConfig};
 #[cfg(feature = "rerun")]
 use rerun_viz::{run_rerun, RerunConfig};
+use std::sync::{atomic::AtomicBool, Arc};
+use std::thread;
+use std::time::Duration;
 
 fn main() {
     env_logger::init();
@@ -129,7 +129,12 @@ fn main() {
     let rerun_handle = if rerun_enabled {
         let mut rerun_config = RerunConfig::default();
         rerun_config.save_path = rerun_save_path.map(std::path::PathBuf::from);
-        run_rerun(Arc::clone(&exchange), timebase, Arc::clone(&stop), rerun_config)
+        run_rerun(
+            Arc::clone(&exchange),
+            timebase,
+            Arc::clone(&stop),
+            rerun_config,
+        )
     } else {
         None
     };
