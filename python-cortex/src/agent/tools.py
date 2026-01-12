@@ -1,17 +1,26 @@
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
-from typing import Any, Optional
+import statistics
+from dataclasses import dataclass, field
+from typing import Any, Optional, TYPE_CHECKING
 
 from .schemas import Constraints, RecommendationCandidate, StateObservation
+
+if TYPE_CHECKING:
+    from digital_twin import BasyxAdapter
 
 
 @dataclass
 class AgentContext:
+    """Context for tool execution including sensor history and digital twin."""
     obs: StateObservation
     constraints: Constraints
     last_recommendation: Optional[RecommendationCandidate]
+    # Extended fields for agentic LLM
+    speed_history: list[float] = field(default_factory=list)
+    temp_history: list[float] = field(default_factory=list)
+    basyx_adapter: Optional["BasyxAdapter"] = None
 
 
 def tool_definitions() -> list[dict]:
@@ -56,6 +65,67 @@ def tool_definitions() -> list[dict]:
                 },
             },
         },
+        # Extended tools for agentic LLM
+        {
+            "type": "function",
+            "function": {
+                "name": "get_speed_trend",
+                "description": "Analyze motor speed trend over recent history. Returns statistics (avg, min, max, slope) useful for predicting future speed.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "window_size": {
+                            "type": "integer",
+                            "description": "Number of recent observations to analyze (default: 10)",
+                            "default": 10,
+                        },
+                    },
+                },
+            },
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "get_temp_trend",
+                "description": "Analyze motor temperature trend over recent history. Returns statistics useful for thermal management decisions.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "window_size": {
+                            "type": "integer",
+                            "description": "Number of recent observations to analyze (default: 10)",
+                            "default": 10,
+                        },
+                    },
+                },
+            },
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "query_digital_twin",
+                "description": "Query the BaSyx digital twin for equipment parameters. Available properties: MaxSpeedRPM, MinSpeedRPM, MaxTemperatureC, MaxRateChangeRPM, SafetyIntegrityLevel, ManufacturerName, SerialNumber.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "property_name": {
+                            "type": "string",
+                            "description": "Name of the property to query from digital twin",
+                            "enum": [
+                                "MaxSpeedRPM",
+                                "MinSpeedRPM",
+                                "MaxTemperatureC",
+                                "MaxRateChangeRPM",
+                                "SafetyIntegrityLevel",
+                                "ManufacturerName",
+                                "SerialNumber",
+                            ],
+                        },
+                    },
+                    "required": ["property_name"],
+                },
+            },
+        },
     ]
 
 
@@ -84,7 +154,161 @@ def execute_tool(name: str, args: dict, ctx: AgentContext) -> Any:
         if abs(delta) > max_rate:
             return current + (max_rate if delta > 0 else -max_rate)
         return target
+
+    # Extended tools
+    if name == "get_speed_trend":
+        return _compute_trend(ctx.speed_history, args.get("window_size", 10), "speed_rpm")
+
+    if name == "get_temp_trend":
+        return _compute_trend(ctx.temp_history, args.get("window_size", 10), "temp_c")
+
+    if name == "query_digital_twin":
+        return _query_digital_twin(args.get("property_name", ""), ctx)
+
     raise ValueError(f"Unknown tool: {name}")
+
+
+def _compute_trend(history: list[float], window_size: int, metric_name: str) -> dict[str, Any]:
+    """Compute trend statistics from a history buffer."""
+    if not history:
+        return {
+            "error": f"No {metric_name} history available",
+            "count": 0,
+        }
+
+    # Take the last N values
+    window = history[-window_size:] if len(history) > window_size else history
+    count = len(window)
+
+    if count == 0:
+        return {"error": "Empty window", "count": 0}
+
+    result: dict[str, Any] = {
+        "count": count,
+        "latest": window[-1],
+        "avg": statistics.mean(window),
+        "min": min(window),
+        "max": max(window),
+    }
+
+    if count > 1:
+        result["std_dev"] = statistics.stdev(window)
+        # Simple linear regression for slope
+        x_mean = (count - 1) / 2
+        y_mean = result["avg"]
+        numerator = sum((i - x_mean) * (y - y_mean) for i, y in enumerate(window))
+        denominator = sum((i - x_mean) ** 2 for i in range(count))
+        result["slope"] = numerator / denominator if denominator != 0 else 0.0
+        result["trend"] = "rising" if result["slope"] > 0.1 else ("falling" if result["slope"] < -0.1 else "stable")
+    else:
+        result["std_dev"] = 0.0
+        result["slope"] = 0.0
+        result["trend"] = "unknown"
+
+    return result
+
+
+def _query_digital_twin(property_name: str, ctx: AgentContext) -> dict[str, Any]:
+    """Query the BaSyx digital twin for a property.
+
+    Attempts to read from BaSyx first (with caching), falls back to constraints.
+    """
+    # Property to submodel mapping
+    PROPERTY_MAP = {
+        "MaxSpeedRPM": ("safety", "MaxSpeedRPM"),
+        "MinSpeedRPM": ("safety", "MinSpeedRPM"),
+        "MaxTemperatureC": ("safety", "MaxTemperatureC"),
+        "MaxRateChangeRPM": ("safety", "MaxRateChangeRPM"),
+        "SafetyIntegrityLevel": ("functional_safety", "SafetyIntegrityLevel"),
+        "ManufacturerName": ("nameplate", "ManufacturerName"),
+        "SerialNumber": ("nameplate", "SerialNumber"),
+    }
+
+    if property_name not in PROPERTY_MAP:
+        return {"error": f"Unknown property: {property_name}"}
+
+    submodel_type, prop_id = PROPERTY_MAP[property_name]
+
+    # Try BaSyx first if adapter is available
+    if ctx.basyx_adapter is not None:
+        try:
+            # Import cache utilities
+            from digital_twin.cache import (
+                get_property_cache,
+                make_cache_key,
+                get_ttl_for_submodel,
+            )
+
+            # Get the appropriate submodel ID
+            submodel_id = _get_submodel_id(ctx.basyx_adapter, submodel_type)
+            cache_key = make_cache_key(submodel_id, prop_id)
+
+            # Check cache first
+            cache = get_property_cache()
+            if cache is not None:
+                cached_value = cache.get(cache_key)
+                if cached_value is not None:
+                    return {
+                        "property": property_name,
+                        "value": cached_value,
+                        "source": "digital_twin_cached",
+                        "submodel": submodel_type,
+                    }
+
+            # Query BaSyx
+            status, value = ctx.basyx_adapter.get_property(submodel_id, prop_id)
+            if status == 200 and value is not None:
+                # Cache the result
+                if cache is not None:
+                    ttl = get_ttl_for_submodel(submodel_type)
+                    cache.set(cache_key, value, ttl)
+
+                return {
+                    "property": property_name,
+                    "value": value,
+                    "source": "digital_twin",
+                    "submodel": submodel_type,
+                }
+
+            # BaSyx returned error status, fall through to fallback
+        except Exception:
+            # Any error, fall through to fallback
+            pass
+
+    # Fallback to constraints/defaults
+    return _fallback_value(property_name, ctx)
+
+
+def _get_submodel_id(adapter: "BasyxAdapter", submodel_type: str) -> str:
+    """Get the submodel ID for a given type from the adapter config."""
+    submodel_ids = {
+        "safety": adapter.config.safety_submodel_id,
+        "nameplate": adapter.config.nameplate_submodel_id,
+        "functional_safety": adapter.config.func_safety_submodel_id,
+        "operational": adapter.config.operational_submodel_id,
+        "ai": adapter.config.ai_submodel_id,
+    }
+    return submodel_ids.get(submodel_type, "")
+
+
+def _fallback_value(property_name: str, ctx: AgentContext) -> dict[str, Any]:
+    """Get fallback value from constraints when BaSyx is unavailable."""
+    fallback_map = {
+        "MaxSpeedRPM": ctx.constraints.max_speed_rpm,
+        "MinSpeedRPM": ctx.constraints.min_speed_rpm,
+        "MaxTemperatureC": ctx.constraints.max_temp_c,
+        "MaxRateChangeRPM": ctx.constraints.max_rate_rpm,
+        "SafetyIntegrityLevel": "SIL2",
+        "ManufacturerName": "NeuroPLC Demo",
+        "SerialNumber": "UNKNOWN",
+    }
+    if property_name in fallback_map:
+        return {
+            "property": property_name,
+            "value": fallback_map[property_name],
+            "source": "constraints_fallback",
+        }
+    return {"error": f"Unknown property: {property_name}"}
 
 
 def tool_result_to_message(result: Any) -> str:

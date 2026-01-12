@@ -12,6 +12,21 @@ dependencies = [
     "openai>=1.30.0"
 ]
 
+[project.optional-dependencies]
+anthropic = ["anthropic>=0.25.0"]
+langgraph = ["langgraph>=0.1.0"]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-cov>=4.0.0",
+    "pytest-asyncio>=0.23.0",
+]
+all = [
+    "anthropic>=0.25.0",
+    "langgraph>=0.1.0",
+    "pytest>=8.0.0",
+    "pytest-cov>=4.0.0",
+]
+
 [project.scripts]
 neuroplc-cortex = "agent.supervisor:main"
 
@@ -20,3 +35,9 @@ package-dir = {"" = "src"}
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"

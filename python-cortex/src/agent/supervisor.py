@@ -15,7 +15,12 @@ from pathlib import Path
 from agent.schemas import Constraints, RecommendationCandidate, StateObservation
 from agent.safety_validator import materialize_recommendation
 from agent.audit import hash_envelope
-from agent.llm_engine import try_llm_agent_recommendation, try_llm_recommendation
+from agent.llm_engine import (
+    try_llm_agent_recommendation,
+    try_llm_agent_recommendation_with_provider,
+    try_llm_recommendation,
+    try_langgraph_recommendation,
+)
 try:
     from agent.ml_inference import MLRecommendationEngine, SafetyBoundedRecommender
 except ImportError:
@@ -249,6 +254,32 @@ def run(host: str, port: int, attack_mode: bool, model_path: Optional[str] = Non
                         if (now - last_llm_at) * 1000.0 >= decision_period_ms:
                             last_llm_meta = try_llm_agent_recommendation(
                                 obs, constraints, last_llm_candidate
+                            )
+                            if last_llm_meta:
+                                last_llm_candidate = last_llm_meta.candidate
+                                last_llm_at = now
+                        if last_llm_candidate:
+                            candidate = last_llm_candidate
+                    elif inference_engine == "llm-provider" and not is_stale:
+                        # Provider-based agent (supports OpenAI and Anthropic)
+                        now = time.time()
+                        if (now - last_llm_at) * 1000.0 >= decision_period_ms:
+                            last_llm_meta = try_llm_agent_recommendation_with_provider(
+                                obs, constraints, last_llm_candidate
+                            )
+                            if last_llm_meta:
+                                last_llm_candidate = last_llm_meta.candidate
+                                last_llm_at = now
+                        if last_llm_candidate:
+                            candidate = last_llm_candidate
+                    elif inference_engine == "langgraph" and not is_stale:
+                        # LangGraph workflow engine
+                        now = time.time()
+                        if (now - last_llm_at) * 1000.0 >= decision_period_ms:
+                            last_llm_meta = try_langgraph_recommendation(
+                                obs, constraints, last_llm_candidate,
+                                speed_history=[], temp_history=[],
+                                basyx_adapter=basyx_adapter,
                             )
                             if last_llm_meta:
                                 last_llm_candidate = last_llm_meta.candidate

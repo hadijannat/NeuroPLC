@@ -1,10 +1,33 @@
 import base64
 import json
+import os
+import time
 import urllib.error
 import urllib.request
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Optional, Tuple
+
+
+@dataclass
+class CircuitBreaker:
+    """Circuit breaker for BaSyx API calls."""
+    failure_count: int = 0
+    last_failure_at: float = 0.0
+    threshold: int = field(default_factory=lambda: int(os.environ.get("BASYX_CIRCUIT_THRESHOLD", "5")))
+    cooldown_s: float = field(default_factory=lambda: float(os.environ.get("BASYX_CIRCUIT_COOLDOWN_S", "30")))
+
+    def record_failure(self) -> None:
+        self.failure_count += 1
+        self.last_failure_at = time.time()
+
+    def record_success(self) -> None:
+        self.failure_count = 0
+
+    def is_open(self) -> bool:
+        if self.failure_count < self.threshold:
+            return False
+        return (time.time() - self.last_failure_at) < self.cooldown_s
 
 
 @dataclass(frozen=True)
@@ -32,6 +55,7 @@ class BasyxAdapter:
     def __init__(self, config: BasyxConfig):
         self.config = config
         self.base_url = config.base_url.rstrip("/")
+        self._circuit_breaker = CircuitBreaker()
 
     def ensure_models(self) -> None:
         self._ensure_aas()
@@ -165,6 +189,56 @@ class BasyxAdapter:
         self._put_property(submodel_id, "ReasoningHash", "STRING", reasoning_hash)
         self._put_property(submodel_id, "RecommendationTimestamp", "DATE_TIME", self._now_iso())
 
+    # --- Read Methods ---
+
+    def get_property(self, submodel_id: str, id_short: str) -> Tuple[int, Any]:
+        """Read a single property value from a submodel using $value endpoint.
+
+        Returns:
+            Tuple of (status_code, value). Value is the raw property value on success.
+        """
+        path = f"/submodels/{self._b64(submodel_id)}/submodel-elements/{id_short}/$value"
+        return self._request_json("GET", path)
+
+    def get_submodel(self, submodel_id: str) -> Tuple[int, Optional[dict]]:
+        """Read entire submodel with all elements.
+
+        Returns:
+            Tuple of (status_code, submodel_dict).
+        """
+        return self._request_json("GET", f"/submodels/{self._b64(submodel_id)}")
+
+    def read_safety_property(self, prop_name: str) -> Optional[Any]:
+        """Convenience method for reading safety submodel properties.
+
+        Returns:
+            The property value, or None if not found/error.
+        """
+        status, value = self.get_property(self.config.safety_submodel_id, prop_name)
+        return value if status == 200 else None
+
+    def read_nameplate_property(self, prop_name: str) -> Optional[Any]:
+        """Convenience method for reading nameplate submodel properties.
+
+        Returns:
+            The property value, or None if not found/error.
+        """
+        status, value = self.get_property(self.config.nameplate_submodel_id, prop_name)
+        return value if status == 200 else None
+
+    def read_functional_safety_property(self, prop_name: str) -> Optional[Any]:
+        """Convenience method for reading functional safety submodel properties.
+
+        Returns:
+            The property value, or None if not found/error.
+        """
+        status, value = self.get_property(self.config.func_safety_submodel_id, prop_name)
+        return value if status == 200 else None
+
+    def is_circuit_open(self) -> bool:
+        """Check if the circuit breaker is currently open (too many failures)."""
+        return self._circuit_breaker.is_open()
+
     def _ensure_aas(self) -> None:
         status, _ = self._request_json("GET", f"/shells/{self._b64(self.config.aas_id)}")
         if status == 404:
@@ -228,6 +302,10 @@ class BasyxAdapter:
         )
 
     def _request_json(self, method: str, path: str, payload: Optional[dict] = None) -> Tuple[int, Any]:
+        # Check circuit breaker for read operations
+        if method == "GET" and self._circuit_breaker.is_open():
+            return 503, {"error": "circuit_breaker_open"}
+
         url = self.base_url + path
         data = None
         headers = {"Content-Type": "application/json"}
@@ -237,10 +315,14 @@ class BasyxAdapter:
         try:
             with urllib.request.urlopen(req, timeout=self.config.timeout_s) as resp:
                 raw = resp.read()
+                self._circuit_breaker.record_success()
                 if not raw:
                     return resp.status, None
                 return resp.status, json.loads(raw.decode("utf-8"))
         except urllib.error.HTTPError as err:
+            # Don't count 404 as failures (expected for missing resources)
+            if err.code != 404:
+                self._circuit_breaker.record_failure()
             raw = err.read()
             if raw:
                 try:
@@ -248,6 +330,9 @@ class BasyxAdapter:
                 except json.JSONDecodeError:
                     return err.code, raw.decode("utf-8", errors="ignore")
             return err.code, None
+        except (urllib.error.URLError, TimeoutError):
+            self._circuit_breaker.record_failure()
+            return 503, {"error": "connection_failed"}
 
     @staticmethod
     def _b64(value: str) -> str:
