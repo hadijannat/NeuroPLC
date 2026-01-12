@@ -102,8 +102,10 @@ fn main() {
         let exchange_bridge = Arc::clone(&exchange);
         let stop_bridge = Arc::clone(&stop);
         let timebase_bridge = timebase;
-        let mut bridge_config = BridgeConfig::default();
-        bridge_config.bind_addr = bind_addr;
+        let bridge_config = BridgeConfig {
+            bind_addr,
+            ..Default::default()
+        };
         Some(thread::spawn(move || {
             run_bridge(exchange_bridge, timebase_bridge, bridge_config, stop_bridge);
         }))
