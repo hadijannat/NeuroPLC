@@ -11,15 +11,25 @@ struct SpineProcess {
 
 impl SpineProcess {
     fn start() -> Self {
-        // Use the pre-built binary to avoid cargo lock contention
-        let bin_path = if std::path::Path::new("../../target/release/neuro-plc").exists() {
-            "../../target/release/neuro-plc"
-        } else if std::path::Path::new("target/release/neuro-plc").exists() {
-            "target/release/neuro-plc"
-        } else {
-            // Fallback for different CWD
-            "./target/release/neuro-plc"
-        };
+        // Prefer the test-built binary when available to avoid extra cargo builds.
+        let bin_path = std::env::var("CARGO_BIN_EXE_neuro-plc").unwrap_or_else(|_| {
+            let candidates = [
+                "../../target/release/neuro-plc",
+                "target/release/neuro-plc",
+                "./target/release/neuro-plc",
+                "../../target/debug/neuro-plc",
+                "target/debug/neuro-plc",
+                "./target/debug/neuro-plc",
+            ];
+            for candidate in candidates {
+                if std::path::Path::new(candidate).exists() {
+                    return candidate.to_string();
+                }
+            }
+            panic!(
+                "Failed to locate neuro-plc binary. Expected CARGO_BIN_EXE_neuro-plc or a build in target/{{release,debug}}/neuro-plc."
+            );
+        });
 
         let listener = TcpListener::bind("127.0.0.1:0")
             .expect("Failed to bind ephemeral port for integration test");
@@ -29,10 +39,10 @@ impl SpineProcess {
         let bind_addr = format!("127.0.0.1:{}", addr.port());
         drop(listener);
 
-        let child = Command::new(bin_path)
+        let child = Command::new(&bin_path)
             .args(["--bind", &bind_addr])
             .spawn()
-            .expect("Failed to start spine - make sure to run 'cargo build --release' first");
+            .expect("Failed to start spine");
 
         // Loop until port is open (up to 5s)
         let start = std::time::Instant::now();
