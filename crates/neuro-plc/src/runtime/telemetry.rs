@@ -34,7 +34,7 @@ pub fn start_metrics_updater(
             SAFETY_STATE.set(snapshot.safety_state.as_u8() as f64);
             if snapshot.cycle_count > last_cycle_count {
                 let delta = snapshot.cycle_count - last_cycle_count;
-                CYCLES_EXECUTED.inc_by(delta as u64);
+                CYCLES_EXECUTED.inc_by(delta);
                 last_cycle_count = snapshot.cycle_count;
             }
 
