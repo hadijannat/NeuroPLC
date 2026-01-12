@@ -168,11 +168,21 @@ export OPENAI_API_KEY=your_key
 python run_supervisor.py
 ```
 
+For bounded tool-calling agent mode:
+
+```bash
+export NEUROPLC_INFERENCE_ENGINE=llm-agent
+export OPENAI_API_KEY=your_key
+python run_supervisor.py
+```
+
 Environment knobs:
 - `NEUROPLC_LLM_MODEL` (default `gpt-4o-mini`)
 - `NEUROPLC_LLM_TIMEOUT_MS` (default `800`)
 - `NEUROPLC_LLM_FAILURE_THRESHOLD` (default `5`)
 - `NEUROPLC_LLM_COOLDOWN_S` (default `30`)
+- `NEUROPLC_LLM_DECISION_PERIOD_MS` (default `500`)
+- `NEUROPLC_LLM_MAX_STEPS` (default `4`)
 
 ---
 

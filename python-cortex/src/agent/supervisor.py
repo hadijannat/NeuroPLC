@@ -15,7 +15,7 @@ from pathlib import Path
 from agent.schemas import Constraints, RecommendationCandidate, StateObservation
 from agent.safety_validator import materialize_recommendation
 from agent.audit import hash_envelope
-from agent.llm_engine import try_llm_recommendation
+from agent.llm_engine import try_llm_agent_recommendation, try_llm_recommendation
 try:
     from agent.ml_inference import MLRecommendationEngine, SafetyBoundedRecommender
 except ImportError:
@@ -163,6 +163,7 @@ def run(host: str, port: int, attack_mode: bool, model_path: Optional[str] = Non
     auth_max_age = int(os.getenv("NEUROPLC_AUTH_MAX_AGE", "300"))
     send_hello = os.getenv("NEUROPLC_SEND_HELLO", "0") in ("1", "true", "yes")
     inference_engine = os.getenv("NEUROPLC_INFERENCE_ENGINE", "baseline").lower()
+    decision_period_ms = int(os.getenv("NEUROPLC_LLM_DECISION_PERIOD_MS", "500"))
     constraints = Constraints(
         min_speed_rpm=float(os.getenv("NEUROPLC_MIN_SPEED_RPM", "0")),
         max_speed_rpm=float(os.getenv("NEUROPLC_MAX_SPEED_RPM", "3000")),
@@ -187,6 +188,10 @@ def run(host: str, port: int, attack_mode: bool, model_path: Optional[str] = Non
         payload = json.dumps(claims, separators=(",", ":"), sort_keys=True).encode("utf-8")
         signature = hmac.new(auth_secret.encode("utf-8"), payload, hashlib.sha256).digest()
         return f"{_b64url(payload)}.{_b64url(signature)}"
+
+    last_llm_at = 0.0
+    last_llm_candidate = None
+    last_llm_meta = None
 
     while True:
         try:
@@ -235,6 +240,17 @@ def run(host: str, port: int, attack_mode: bool, model_path: Optional[str] = Non
                     candidate = None
                     if inference_engine == "llm" and not is_stale:
                         candidate = try_llm_recommendation(obs, constraints)
+                    elif inference_engine == "llm-agent" and not is_stale:
+                        now = time.time()
+                        if (now - last_llm_at) * 1000.0 >= decision_period_ms:
+                            last_llm_meta = try_llm_agent_recommendation(
+                                obs, constraints, last_llm_candidate
+                            )
+                            if last_llm_meta:
+                                last_llm_candidate = last_llm_meta.candidate
+                                last_llm_at = now
+                        if last_llm_candidate:
+                            candidate = last_llm_candidate
 
                     if candidate is None:
                         candidate, envelope = compute_recommendation(
@@ -247,6 +263,12 @@ def run(host: str, port: int, attack_mode: bool, model_path: Optional[str] = Non
                             "target_speed_rpm": candidate.target_speed_rpm,
                             "model": "llm",
                         }
+                        envelope["engine"] = inference_engine
+                        if inference_engine == "llm-agent" and last_llm_meta:
+                            envelope["model"] = last_llm_meta.model
+                            envelope["llm_latency_ms"] = last_llm_meta.latency_ms
+                            envelope["llm_output_hash"] = last_llm_meta.llm_output_hash
+                            envelope["tool_traces"] = last_llm_meta.tool_traces
 
                     if is_stale:
                         candidate = RecommendationCandidate(
@@ -255,6 +277,12 @@ def run(host: str, port: int, attack_mode: bool, model_path: Optional[str] = Non
                             confidence=0.0,
                             reasoning="stale observation",
                         )
+                        envelope = {
+                            "analysis": "stale observation",
+                            "target_speed_rpm": obs.motor_speed_rpm,
+                            "model": "stale",
+                            "engine": "fallback",
+                        }
 
                     rec = materialize_recommendation(candidate, obs, constraints, trace_id)
                     envelope["observation_hash"] = obs_hash
@@ -297,10 +325,10 @@ def run(host: str, port: int, attack_mode: bool, model_path: Optional[str] = Non
                                 cycle_count=cycle,
                                 is_healthy=is_healthy,
                             )
-                            if target is not None:
+                            if candidate is not None:
                                 basyx_adapter.update_recommendation(
-                                    target_speed=target,
-                                    confidence=confidence,
+                                    target_speed=candidate.target_speed_rpm,
+                                    confidence=candidate.confidence,
                                     reasoning_hash=reasoning_hash,
                                 )
                             basyx_last_update = now
