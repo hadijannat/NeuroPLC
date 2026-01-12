@@ -8,7 +8,7 @@ pub mod protocol_proto;
 pub mod tls;
 
 pub use auth::{AuthConfig, AuthError, TokenClaims, TokenValidator};
-pub use bridge::{run_bridge, BridgeConfig};
+pub use bridge::{run_bridge, BridgeConfig, WireProtocol};
 pub use hal_modbus::ModbusMotor;
 pub use metrics::{init_metrics, serve_metrics};
 pub use protocol::{IncomingMessage, ProtocolVersion, RecommendationMsg, StateMsg};

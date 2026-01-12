@@ -37,3 +37,6 @@ The protobuf schema is available at `proto/neuroplc.proto`. Enable the optional
 ```
 cargo build -p neuro-io --features proto
 ```
+
+The protobuf wire format uses a 4-byte big-endian length prefix followed by a
+`WireMessage` payload (`hello`, `recommendation`, or `state`).

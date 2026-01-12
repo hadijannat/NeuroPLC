@@ -37,3 +37,11 @@ message State {
   double pressure_bar = 9;
   uint32 cycle_jitter_us = 10;
 }
+
+message WireMessage {
+  oneof payload {
+    Hello hello = 1;
+    Recommendation recommendation = 2;
+    State state = 3;
+  }
+}

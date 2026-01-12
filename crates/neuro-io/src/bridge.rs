@@ -4,8 +4,12 @@ use crate::metrics::{
     RECOMMENDATION_EXPIRED, RECOMMENDATION_OUT_OF_ORDER,
 };
 use crate::protocol::{HelloMsg, IncomingMessage, StateMsg};
+#[cfg(feature = "proto")]
+use crate::protocol_proto::proto;
 use crate::tls::{build_server_config, TlsConfig};
 use core_spine::{AgentRecommendation, StateExchange, TimeBase};
+#[cfg(feature = "proto")]
+use prost::Message;
 use rustls::{ServerConnection, StreamOwned};
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
@@ -19,6 +23,7 @@ pub struct BridgeConfig {
     pub tls: TlsConfig,
     pub auth: AuthConfig,
     pub require_handshake: bool,
+    pub wire_protocol: WireProtocol,
 }
 
 impl Default for BridgeConfig {
@@ -29,6 +34,30 @@ impl Default for BridgeConfig {
             tls: TlsConfig::default(),
             auth: AuthConfig::default(),
             require_handshake: false,
+            wire_protocol: WireProtocol::JsonLines,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum WireProtocol {
+    JsonLines,
+    Protobuf,
+}
+
+impl WireProtocol {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            WireProtocol::JsonLines => "json",
+            WireProtocol::Protobuf => "proto",
+        }
+    }
+
+    pub fn parse(value: &str) -> Option<Self> {
+        match value.to_ascii_lowercase().as_str() {
+            "json" | "jsonl" | "jsonlines" => Some(WireProtocol::JsonLines),
+            "proto" | "protobuf" => Some(WireProtocol::Protobuf),
+            _ => None,
         }
     }
 }
@@ -130,6 +159,7 @@ pub fn run_bridge(
         addr = %config.bind_addr,
         tls = config.tls.enabled,
         auth = config.auth.enabled,
+        protocol = %config.wire_protocol.as_str(),
         "Bridge listening"
     );
 
@@ -206,22 +236,76 @@ pub fn run_bridge(
                 }
                 Ok(n) => {
                     recv_buf.extend_from_slice(&temp[..n]);
-                    while let Some(pos) = recv_buf.iter().position(|b| *b == b'\n') {
-                        let line = recv_buf.drain(..=pos).collect::<Vec<u8>>();
-                        if let Ok(text) = std::str::from_utf8(&line) {
-                            let trimmed = text.trim();
-                            if trimmed.is_empty() {
-                                continue;
+                    match config.wire_protocol {
+                        WireProtocol::JsonLines => {
+                            while let Some(pos) = recv_buf.iter().position(|b| *b == b'\n') {
+                                let line = recv_buf.drain(..=pos).collect::<Vec<u8>>();
+                                if let Ok(text) = std::str::from_utf8(&line) {
+                                    let trimmed = text.trim();
+                                    if trimmed.is_empty() {
+                                        continue;
+                                    }
+                                    if let Some(msg) = IncomingMessage::parse(trimmed) {
+                                        handle_incoming(
+                                            msg,
+                                            &exchange,
+                                            &timebase,
+                                            &validator,
+                                            config.require_handshake,
+                                            &mut inbound_state,
+                                        );
+                                    }
+                                }
                             }
-                            if let Some(msg) = IncomingMessage::parse(trimmed) {
-                                handle_incoming(
-                                    msg,
-                                    &exchange,
-                                    &timebase,
-                                    &validator,
-                                    config.require_handshake,
-                                    &mut inbound_state,
-                                );
+                        }
+                        WireProtocol::Protobuf => {
+                            #[cfg(feature = "proto")]
+                            {
+                                const MAX_FRAME_BYTES: usize = 256 * 1024;
+                                loop {
+                                    if recv_buf.len() < 4 {
+                                        break;
+                                    }
+                                    let len = u32::from_be_bytes([
+                                        recv_buf[0],
+                                        recv_buf[1],
+                                        recv_buf[2],
+                                        recv_buf[3],
+                                    ]) as usize;
+                                    if len > MAX_FRAME_BYTES {
+                                        warn!(len, "Dropping client with oversized frame");
+                                        drop_client = true;
+                                        break;
+                                    }
+                                    if recv_buf.len() < 4 + len {
+                                        break;
+                                    }
+                                    let payload = recv_buf[4..4 + len].to_vec();
+                                    recv_buf.drain(..4 + len);
+                                    match proto::WireMessage::decode(payload.as_slice())
+                                        .ok()
+                                        .and_then(|msg| IncomingMessage::try_from(msg).ok())
+                                    {
+                                        Some(msg) => {
+                                            handle_incoming(
+                                                msg,
+                                                &exchange,
+                                                &timebase,
+                                                &validator,
+                                                config.require_handshake,
+                                                &mut inbound_state,
+                                            );
+                                        }
+                                        None => {
+                                            warn!("Failed to decode protobuf message");
+                                        }
+                                    }
+                                }
+                            }
+                            #[cfg(not(feature = "proto"))]
+                            {
+                                warn!("Protobuf wire protocol requested but 'proto' feature is disabled");
+                                drop_client = true;
                             }
                         }
                     }
@@ -238,23 +322,63 @@ pub fn run_bridge(
             if send_buf.is_empty() && last_publish.elapsed() >= config.publish_interval {
                 state_sequence = state_sequence.wrapping_add(1);
                 let snapshot = exchange.read_state();
-                let msg = StateMsg {
-                    msg_type: "state",
-                    protocol_version: crate::protocol::ProtocolVersion::v1(),
-                    sequence: state_sequence,
-                    timestamp_us: snapshot.timestamp_us,
-                    cycle_count: snapshot.cycle_count,
-                    safety_state: snapshot.safety_state.as_str(),
-                    unix_us: timebase.unix_us(),
-                    motor_speed_rpm: snapshot.motor_speed_rpm,
-                    motor_temp_c: snapshot.motor_temp_c,
-                    pressure_bar: snapshot.pressure_bar,
-                    cycle_jitter_us: snapshot.cycle_jitter_us,
-                };
-                if let Ok(line) = serde_json::to_string(&msg) {
-                    send_buf = line.into_bytes();
-                    send_buf.push(b'\n');
-                    send_offset = 0;
+                match config.wire_protocol {
+                    WireProtocol::JsonLines => {
+                        let msg = StateMsg {
+                            msg_type: "state",
+                            protocol_version: crate::protocol::ProtocolVersion::v1(),
+                            sequence: state_sequence,
+                            timestamp_us: snapshot.timestamp_us,
+                            cycle_count: snapshot.cycle_count,
+                            safety_state: snapshot.safety_state.as_str(),
+                            unix_us: timebase.unix_us(),
+                            motor_speed_rpm: snapshot.motor_speed_rpm,
+                            motor_temp_c: snapshot.motor_temp_c,
+                            pressure_bar: snapshot.pressure_bar,
+                            cycle_jitter_us: snapshot.cycle_jitter_us,
+                        };
+                        if let Ok(line) = serde_json::to_string(&msg) {
+                            send_buf = line.into_bytes();
+                            send_buf.push(b'\n');
+                            send_offset = 0;
+                        }
+                    }
+                    WireProtocol::Protobuf => {
+                        #[cfg(feature = "proto")]
+                        {
+                            let msg = proto::State {
+                                protocol_version: Some(proto::ProtocolVersion {
+                                    major: 1,
+                                    minor: 0,
+                                }),
+                                sequence: state_sequence,
+                                timestamp_us: snapshot.timestamp_us,
+                                cycle_count: snapshot.cycle_count,
+                                safety_state: snapshot.safety_state.as_str().to_string(),
+                                unix_us: timebase.unix_us(),
+                                motor_speed_rpm: snapshot.motor_speed_rpm,
+                                motor_temp_c: snapshot.motor_temp_c,
+                                pressure_bar: snapshot.pressure_bar,
+                                cycle_jitter_us: snapshot.cycle_jitter_us,
+                            };
+                            let wire = proto::WireMessage {
+                                payload: Some(proto::wire_message::Payload::State(msg)),
+                            };
+                            let mut frame = Vec::new();
+                            if wire.encode(&mut frame).is_ok() {
+                                let len = frame.len() as u32;
+                                send_buf = len.to_be_bytes().to_vec();
+                                send_buf.extend_from_slice(&frame);
+                                send_offset = 0;
+                            }
+                        }
+                        #[cfg(not(feature = "proto"))]
+                        {
+                            warn!(
+                                "Protobuf wire protocol requested but 'proto' feature is disabled"
+                            );
+                        }
+                    }
                 }
                 last_publish = Instant::now();
             }

@@ -46,6 +46,7 @@ class BasyxAdapter:
                 self._prop("CycleCount", "LONG", 0),
                 self._prop("IsHealthy", "BOOLEAN", True),
                 self._prop("CycleJitterUs", "LONG", 0),
+                self._prop("SafetyState", "STRING", "normal"),
             ],
             semantic_id=self.config.operational_semantic_id,
         )
@@ -149,6 +150,12 @@ class BasyxAdapter:
         self._put_property(submodel_id, "IsHealthy", "BOOLEAN", bool(is_healthy))
         self._put_property(
             submodel_id, "CycleJitterUs", "LONG", int(state.get("cycle_jitter_us", 0))
+        )
+        self._put_property(
+            submodel_id,
+            "SafetyState",
+            "STRING",
+            str(state.get("safety_state", "unknown")),
         )
 
     def update_recommendation(self, target_speed: float, confidence: float, reasoning_hash: str) -> None:

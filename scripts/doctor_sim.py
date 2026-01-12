@@ -267,6 +267,26 @@ def run() -> None:
         # Read initial state
         initial_state = read_state(sock)
         baseline_speed = float(initial_state.get("motor_speed_rpm", 0.0)) if initial_state else 0.0
+        safety_state = (initial_state or {}).get("safety_state")
+        if safety_state is None:
+            results.append(
+                ScenarioResult(
+                    "Safety state field",
+                    "Present in state message",
+                    "missing",
+                    "CHECK",
+                )
+            )
+        else:
+            valid_states = {"normal", "degraded", "trip", "safe"}
+            results.append(
+                ScenarioResult(
+                    "Safety state field",
+                    "Present in state message",
+                    f"{safety_state}",
+                    "OK" if safety_state in valid_states else "CHECK",
+                )
+            )
 
         # Scenario 1: Valid recommendation
         issued_at_us = int(time.time() * 1_000_000)

@@ -19,6 +19,7 @@ pub struct RuntimeConfig {
     pub auth_audience: String,
     pub auth_scope: Option<String>,
     pub bridge_require_handshake: bool,
+    pub bridge_protocol: String,
     pub modbus_addr: Option<String>,
     #[cfg(feature = "opcua")]
     pub opcua_enabled: bool,
@@ -64,6 +65,7 @@ impl Default for RuntimeConfig {
             auth_audience: "neuroplc-spine".to_string(),
             auth_scope: None,
             bridge_require_handshake: false,
+            bridge_protocol: "json".to_string(),
             modbus_addr: None,
             #[cfg(feature = "opcua")]
             opcua_enabled: false,
@@ -186,6 +188,12 @@ impl RuntimeConfig {
                 "--require-handshake" => {
                     cfg.bridge_require_handshake = true;
                 }
+                "--protocol" => {
+                    if i + 1 < args.len() {
+                        cfg.bridge_protocol = args[i + 1].clone();
+                        i += 1;
+                    }
+                }
                 "--modbus" => {
                     if i + 1 < args.len() {
                         cfg.modbus_addr = Some(args[i + 1].clone());
@@ -291,6 +299,7 @@ OPTIONS:
     --auth-audience <STR>   Expected token audience [default: neuroplc-spine]
     --auth-scope <STR>      Required scope for recommendations (optional)
     --require-handshake     Require a protocol handshake before accepting recommendations
+    --protocol <NAME>       Bridge protocol (json|proto) [default: json]
     --modbus <ADDR>         Connect to real hardware via Modbus TCP (e.g. 192.168.1.10:502)
     --opcua                 Enable OPC UA server (requires 'opcua' feature)
     --opcua-endpoint <URL>  OPC UA endpoint URL [default: opc.tcp://0.0.0.0:4840]

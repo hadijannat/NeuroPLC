@@ -10,7 +10,7 @@ use core_spine::{
     ControlConfig, CycleStats, IronThread, MachineIO, SimulatedMotor, StateExchange, TimeBase,
 };
 use neuro_io::auth::AuthConfig;
-use neuro_io::bridge::{run_bridge, BridgeConfig};
+use neuro_io::bridge::{run_bridge, BridgeConfig, WireProtocol};
 use neuro_io::hal_modbus::ModbusMotor;
 use neuro_io::tls::TlsConfig;
 use std::path::PathBuf;
@@ -278,6 +278,14 @@ pub fn run(config: RuntimeConfig) {
 }
 
 fn build_bridge_config(config: &RuntimeConfig) -> BridgeConfig {
+    let wire_protocol = WireProtocol::parse(&config.bridge_protocol).unwrap_or_else(|| {
+        warn!(
+            protocol = %config.bridge_protocol,
+            "Unknown protocol, defaulting to json"
+        );
+        WireProtocol::JsonLines
+    });
+
     BridgeConfig {
         bind_addr: config.bind_addr.clone(),
         tls: TlsConfig {
@@ -297,6 +305,7 @@ fn build_bridge_config(config: &RuntimeConfig) -> BridgeConfig {
             ..Default::default()
         },
         require_handshake: config.bridge_require_handshake,
+        wire_protocol,
         ..Default::default()
     }
 }
@@ -340,6 +349,10 @@ fn hash_runtime_config(config: &RuntimeConfig) -> String {
     summary.insert(
         "bridge_require_handshake".to_string(),
         serde_json::Value::Bool(config.bridge_require_handshake),
+    );
+    summary.insert(
+        "bridge_protocol".to_string(),
+        config.bridge_protocol.clone().into(),
     );
     summary.insert(
         "auth_max_age_secs".to_string(),
