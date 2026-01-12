@@ -25,6 +25,7 @@ from agent.memory import (
     DecisionRecord,
     get_decision_store,
     get_observation_buffer,
+    get_adaptive_learner,
 )
 try:
     from agent.ml_inference import MLRecommendationEngine, SafetyBoundedRecommender
@@ -168,10 +169,17 @@ def run(host: str, port: int, attack_mode: bool, model_path: Optional[str] = Non
 
     # Initialize memory system
     memory_enabled = os.getenv("NEUROPLC_MEMORY_ENABLED", "1") in ("1", "true", "yes")
+    learning_enabled = os.getenv("NEUROPLC_LEARNING_ENABLED", "1") in ("1", "true", "yes")
     decision_store = get_decision_store(enabled=memory_enabled)
     observation_buffer = get_observation_buffer() if memory_enabled else None
+    adaptive_learner = get_adaptive_learner() if learning_enabled else None
     if memory_enabled:
         print(f"Memory system enabled (DB: {decision_store.db_path})")
+    if adaptive_learner:
+        print("Adaptive learning enabled")
+
+    # Track previous recommendation for feedback loop
+    pending_feedback: dict = {}  # trace_id -> (target_speed, timestamp)
 
     auth_secret = os.getenv("NEUROPLC_AUTH_SECRET")
     auth_issuer = os.getenv("NEUROPLC_AUTH_ISSUER", "neuroplc")
@@ -417,6 +425,46 @@ def run(host: str, port: int, attack_mode: bool, model_path: Optional[str] = Non
                         msg["auth_token"] = _auth_token(int(time.time()))
                     file.write((json.dumps(msg) + "\n").encode("utf-8"))
                     file.flush()
+
+                    # Track pending feedback for learning
+                    if rec.approved and adaptive_learner is not None:
+                        pending_feedback[trace_id] = {
+                            "target_speed": rec.target_speed_rpm,
+                            "timestamp_us": issued_at_unix_us,
+                        }
+                        # Clean up old pending feedback (older than 10 seconds)
+                        cutoff = issued_at_unix_us - 10_000_000
+                        pending_feedback = {
+                            k: v for k, v in pending_feedback.items()
+                            if v["timestamp_us"] > cutoff
+                        }
+
+                    # Process feedback for previous recommendations
+                    if adaptive_learner is not None and pending_feedback:
+                        actual_speed = obs.motor_speed_rpm
+                        to_remove = []
+                        for fb_trace_id, fb_data in pending_feedback.items():
+                            target = fb_data["target_speed"]
+                            # If actual speed is within 10% of target, consider it accepted
+                            tolerance = max(50.0, abs(target) * 0.1)
+                            if abs(actual_speed - target) <= tolerance:
+                                # Recommendation was applied successfully
+                                adaptive_learner.record_outcome(
+                                    trace_id=fb_trace_id,
+                                    spine_accepted=True,
+                                    actual_speed_rpm=actual_speed,
+                                )
+                                to_remove.append(fb_trace_id)
+                            elif (issued_at_unix_us - fb_data["timestamp_us"]) > 2_000_000:
+                                # More than 2 seconds old and not applied - likely rejected
+                                adaptive_learner.record_outcome(
+                                    trace_id=fb_trace_id,
+                                    spine_accepted=False,
+                                    actual_speed_rpm=actual_speed,
+                                )
+                                to_remove.append(fb_trace_id)
+                        for fb_trace_id in to_remove:
+                            pending_feedback.pop(fb_trace_id, None)
 
                     now = time.time()
                     if basyx_adapter and basyx_ready and (now - basyx_last_update) >= basyx_interval_s:

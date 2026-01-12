@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import os
 import time
 from typing import Any, Optional
 
@@ -34,6 +35,32 @@ You may call tools to get additional information:
 
 Return ONLY valid JSON matching the schema. No explanations outside JSON."""
 
+PLANNER_SYSTEM_PROMPT_WITH_LEARNING = """You are a safety-first industrial motor controller supervisor.
+
+Your task is to recommend a safe motor speed setpoint based on current sensor readings.
+
+SAFETY RULES (MUST FOLLOW):
+1. Never exceed max_speed_rpm from constraints
+2. Never go below min_speed_rpm from constraints
+3. Respect rate-of-change limits (max_rate_rpm per control cycle)
+4. If temperature exceeds max_temp_c, recommend speed reduction
+5. If uncertain, maintain current speed (action: "hold")
+
+LEARNED PATTERNS FROM HISTORY:
+{learning_context}
+
+SUCCESSFUL EXAMPLES FROM SIMILAR CONDITIONS:
+{few_shot_examples}
+
+You may call tools to get additional information:
+- get_constraints: Get current safety limits
+- get_state_summary: Get current sensor readings
+- get_last_recommendation: Get previous recommendation
+- compute_slew_limited_setpoint: Calculate rate-limited speed change
+- get_learning_stats: Get success rate statistics for conditions
+
+Return ONLY valid JSON matching the schema. No explanations outside JSON."""
+
 CRITIC_SYSTEM_PROMPT = """You are a strict safety critic for an industrial motor controller.
 
 Review the proposed recommendation and verify it respects ALL safety constraints:
@@ -49,13 +76,37 @@ def observe_node(state: AgentState) -> dict[str, Any]:
     """Read observation and prepare context for planning.
 
     This node validates the observation is fresh and prepares
-    the initial messages for the LLM.
+    the initial messages for the LLM. Includes learning context
+    when adaptive learning is enabled.
     """
     obs = state["observation"]
     constraints = state["constraints"]
 
-    # Build system message
-    system_content = PLANNER_SYSTEM_PROMPT
+    # Check if learning is enabled
+    learning_enabled = os.environ.get("NEUROPLC_LEARNING_ENABLED", "1") in ("1", "true", "yes")
+
+    # Build system message with optional learning context
+    if learning_enabled:
+        try:
+            from ...memory.learning import get_adaptive_learner
+
+            learner = get_adaptive_learner()
+            if learner is not None:
+                # Get learning context and few-shot examples
+                learning_context = learner.format_learning_context(obs)
+                few_shot = learner.get_few_shot_examples(obs, n=3)
+                few_shot_text = learner.format_few_shot_examples(few_shot)
+
+                system_content = PLANNER_SYSTEM_PROMPT_WITH_LEARNING.format(
+                    learning_context=learning_context,
+                    few_shot_examples=few_shot_text,
+                )
+            else:
+                system_content = PLANNER_SYSTEM_PROMPT
+        except ImportError:
+            system_content = PLANNER_SYSTEM_PROMPT
+    else:
+        system_content = PLANNER_SYSTEM_PROMPT
 
     # Build user message with current state
     user_content = json.dumps({
@@ -296,6 +347,23 @@ def validate_node(state: AgentState) -> dict[str, Any]:
 
     # Update candidate with clamped values
     candidate.target_speed_rpm = target
+
+    # Apply confidence adjustment based on historical success rate
+    learning_enabled = os.environ.get("NEUROPLC_LEARNING_ENABLED", "1") in ("1", "true", "yes")
+    if learning_enabled:
+        try:
+            from ...memory.learning import get_adaptive_learner
+
+            learner = get_adaptive_learner()
+            if learner is not None:
+                adjusted_confidence = learner.compute_adjusted_confidence(
+                    base_confidence=candidate.confidence,
+                    observation=obs,
+                    action=candidate.action,
+                )
+                candidate.confidence = adjusted_confidence
+        except ImportError:
+            pass
 
     if violations:
         # Validation found issues but we can still proceed with clamped values

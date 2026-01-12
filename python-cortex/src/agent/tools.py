@@ -216,6 +216,34 @@ def tool_definitions() -> list[dict]:
                 },
             },
         },
+        # Learning tool
+        {
+            "type": "function",
+            "function": {
+                "name": "get_learning_stats",
+                "description": "Get success rate statistics for specific operating conditions. Useful for understanding historical performance in similar situations and adjusting confidence.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "temp_range": {
+                            "type": "string",
+                            "description": "Temperature range: 'low' (0-50C), 'medium' (50-70C), 'high' (70+C)",
+                            "enum": ["low", "medium", "high"],
+                        },
+                        "speed_range": {
+                            "type": "string",
+                            "description": "Speed range: 'low' (0-1000), 'medium' (1000-2000), 'high' (2000+)",
+                            "enum": ["low", "medium", "high"],
+                        },
+                        "action_type": {
+                            "type": "string",
+                            "description": "Action type to filter by",
+                            "enum": ["hold", "adjust_setpoint"],
+                        },
+                    },
+                },
+            },
+        },
     ]
 
 
@@ -310,6 +338,44 @@ def execute_tool(name: str, args: dict, ctx: AgentContext) -> Any:
         )
         updated = store.record_feedback(feedback)
         return {"success": updated}
+
+    if name == "get_learning_stats":
+        from .memory.learning import get_adaptive_learner
+
+        learner = get_adaptive_learner()
+        if learner is None:
+            return {"error": "Learning system not available"}
+
+        temp_range = args.get("temp_range")
+        speed_range = args.get("speed_range")
+        action_type = args.get("action_type")
+
+        stats = learner.get_learning_stats(
+            temp_range=temp_range,
+            speed_range=speed_range,
+            action_type=action_type,
+        )
+
+        # Format results
+        results = []
+        for s in stats:
+            results.append({
+                "bucket": s.bucket_key,
+                "total_decisions": s.total_decisions,
+                "successful": s.successful_decisions,
+                "success_rate": round(s.success_rate, 3),
+                "avg_confidence": round(s.avg_confidence, 3),
+            })
+
+        return {
+            "count": len(results),
+            "filters": {
+                "temp_range": temp_range,
+                "speed_range": speed_range,
+                "action_type": action_type,
+            },
+            "stats": results,
+        }
 
     raise ValueError(f"Unknown tool: {name}")
 

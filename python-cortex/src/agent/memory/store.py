@@ -150,6 +150,7 @@ class DecisionStore:
         CREATE INDEX IF NOT EXISTS idx_decisions_observation_hash ON decisions(observation_hash);
         CREATE INDEX IF NOT EXISTS idx_decisions_engine ON decisions(engine);
         CREATE INDEX IF NOT EXISTS idx_decisions_approved ON decisions(approved);
+        CREATE INDEX IF NOT EXISTS idx_decisions_learning ON decisions(action, spine_accepted);
 
         CREATE TABLE IF NOT EXISTS tool_calls (
             id INTEGER PRIMARY KEY AUTOINCREMENT,

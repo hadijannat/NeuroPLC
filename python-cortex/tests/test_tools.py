@@ -52,8 +52,8 @@ class TestToolDefinitions:
 
     def test_tool_definitions_count(self):
         tools = tool_definitions()
-        # Should have 11 tools: original 4 + 3 extended + 4 memory tools
-        assert len(tools) == 11
+        # Should have 12 tools: original 4 + 3 extended + 4 memory tools + 1 learning tool
+        assert len(tools) == 12
 
     def test_tool_definitions_structure(self):
         tools = tool_definitions()
@@ -80,6 +80,8 @@ class TestToolDefinitions:
             "get_similar_scenarios",
             "get_decision_outcome",
             "record_feedback",
+            # Learning tool
+            "get_learning_stats",
         }
         assert names == expected
 

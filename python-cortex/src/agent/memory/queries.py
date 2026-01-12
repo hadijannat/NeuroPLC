@@ -239,3 +239,112 @@ def get_decision_outcome(trace_id: str) -> Optional[dict[str, Any]]:
         result["outcome"] = None
 
     return result
+
+
+def get_success_weighted_similar(
+    observation: "StateObservation",
+    k: int = 5,
+    similarity_threshold: float = 0.8,
+    success_weight: float = 0.3,
+) -> list[dict[str, Any]]:
+    """Find similar scenarios weighted by outcome success.
+
+    Combined score = (1 - success_weight) * similarity + success_weight * outcome_score
+
+    Args:
+        observation: Current state observation
+        k: Number of results to return
+        similarity_threshold: Minimum similarity score (0-1)
+        success_weight: Weight given to success rate (0-1)
+
+    Returns:
+        List of similar decisions with combined scores
+    """
+    from .learning import get_adaptive_learner
+
+    learner = get_adaptive_learner()
+    if learner is None:
+        # Fallback to regular similarity search if learning disabled
+        return get_similar_scenarios(observation, k, similarity_threshold)
+
+    return learner.get_success_weighted_similar(observation, k, similarity_threshold)
+
+
+def get_aggregated_stats(
+    temp_min: Optional[float] = None,
+    temp_max: Optional[float] = None,
+    speed_min: Optional[float] = None,
+    speed_max: Optional[float] = None,
+    action: Optional[str] = None,
+) -> dict[str, Any]:
+    """Get aggregated success statistics for a condition range.
+
+    Args:
+        temp_min: Minimum temperature filter
+        temp_max: Maximum temperature filter
+        speed_min: Minimum speed filter
+        speed_max: Maximum speed filter
+        action: Action type filter
+
+    Returns:
+        Dict with aggregated statistics
+    """
+    store = get_decision_store()
+    if store is None:
+        return {"error": "Store not available", "total": 0}
+
+    decisions = store.query_decisions(limit=1000)
+
+    matching = []
+    for d in decisions:
+        try:
+            obs = json.loads(d["observation_json"])
+            temp = obs.get("motor_temp_c", 0)
+            speed = obs.get("motor_speed_rpm", 0)
+
+            # Apply filters
+            if temp_min is not None and temp < temp_min:
+                continue
+            if temp_max is not None and temp >= temp_max:
+                continue
+            if speed_min is not None and speed < speed_min:
+                continue
+            if speed_max is not None and speed >= speed_max:
+                continue
+            if action is not None and d["action"] != action:
+                continue
+
+            matching.append(d)
+        except (json.JSONDecodeError, KeyError, TypeError):
+            continue
+
+    if not matching:
+        return {
+            "total": 0,
+            "successful": 0,
+            "success_rate": 0.0,
+            "avg_confidence": 0.0,
+            "filters": {
+                "temp_range": (temp_min, temp_max),
+                "speed_range": (speed_min, speed_max),
+                "action": action,
+            },
+        }
+
+    total = len(matching)
+    successful = sum(1 for d in matching if d.get("spine_accepted") == 1)
+    with_outcome = sum(1 for d in matching if d.get("spine_accepted") is not None)
+    confidences = [d["confidence"] for d in matching if d.get("confidence") is not None]
+
+    return {
+        "total": total,
+        "with_outcome": with_outcome,
+        "successful": successful,
+        "success_rate": successful / with_outcome if with_outcome > 0 else 0.0,
+        "avg_confidence": sum(confidences) / len(confidences) if confidences else 0.0,
+        "filters": {
+            "temp_range": (temp_min, temp_max),
+            "speed_range": (speed_min, speed_max),
+            "action": action,
+        },
+    }

@@ -201,7 +201,8 @@ class TestValidateNode:
 
         result = validate_node(state)
 
-        assert result["candidate"].target_speed_rpm == 3000.0  # Clamped
+        # First clamped to max (3000), then rate-limited from 1500 to 1550
+        assert result["candidate"].target_speed_rpm == 1550.0
         assert result["critic_feedback"].approved is False
         assert any("above max" in v for v in result["critic_feedback"].violations)
 
