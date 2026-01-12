@@ -1,9 +1,36 @@
+use core_spine::tags;
 use serde::{Deserialize, Serialize};
+
+pub const STATE_TAGS: &[tags::Tag] = &[
+    tags::MOTOR_SPEED_RPM,
+    tags::MOTOR_TEMP_C,
+    tags::PRESSURE_BAR,
+    tags::CYCLE_JITTER_US,
+    tags::TIMESTAMP_US,
+];
+
+#[derive(Debug, Clone, Copy, Default, Deserialize, Serialize, PartialEq, Eq)]
+pub struct ProtocolVersion {
+    pub major: u8,
+    pub minor: u8,
+}
+
+impl ProtocolVersion {
+    pub const fn v1() -> Self {
+        Self { major: 1, minor: 0 }
+    }
+
+    pub fn is_supported(&self) -> bool {
+        self.major == 1
+    }
+}
 
 #[derive(Debug, Serialize)]
 pub struct StateMsg {
     #[serde(rename = "type")]
     pub msg_type: &'static str,
+    pub protocol_version: ProtocolVersion,
+    pub sequence: u64,
     pub timestamp_us: u64,
     pub unix_us: u64,
     pub motor_speed_rpm: f64,
@@ -16,9 +43,17 @@ pub struct StateMsg {
 pub struct RecommendationMsg {
     #[serde(rename = "type")]
     pub msg_type: String,
+    #[serde(default)]
+    pub protocol_version: ProtocolVersion,
+    #[serde(default)]
+    pub sequence: u64,
     pub target_speed_rpm: Option<f64>,
     pub confidence: f32,
     pub reasoning_hash: String,
+    #[serde(default)]
+    pub issued_at_unix_us: u64,
+    #[serde(default)]
+    pub ttl_ms: u64,
     #[allow(dead_code)]
     pub client_unix_us: Option<u64>,
     #[allow(dead_code)]

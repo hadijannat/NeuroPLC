@@ -3,6 +3,7 @@
 //! This module provides metrics collection for the control loop,
 //! safety system, and agent communication.
 
+use core_spine::tags;
 use prometheus::{Encoder, Gauge, Histogram, HistogramOpts, IntCounter, Registry, TextEncoder};
 use std::sync::LazyLock;
 use std::thread;
@@ -41,7 +42,7 @@ pub static CYCLES_MISSED: LazyLock<IntCounter> = LazyLock::new(|| {
 pub static CYCLE_JITTER_US: LazyLock<Histogram> = LazyLock::new(|| {
     let histogram = Histogram::with_opts(
         HistogramOpts::new(
-            "neuroplc_cycle_jitter_microseconds",
+            tags::CYCLE_JITTER_US.metric,
             "Control loop jitter distribution in microseconds",
         )
         .buckets(vec![
@@ -85,7 +86,7 @@ pub static AGENT_TIMEOUTS: LazyLock<IntCounter> = LazyLock::new(|| {
 
 /// Current motor speed in RPM
 pub static MOTOR_SPEED_RPM: LazyLock<Gauge> = LazyLock::new(|| {
-    let gauge = Gauge::new("neuroplc_motor_speed_rpm", "Current motor speed in RPM").unwrap();
+    let gauge = Gauge::new(tags::MOTOR_SPEED_RPM.metric, "Current motor speed in RPM").unwrap();
     REGISTRY.register(Box::new(gauge.clone())).unwrap();
     gauge
 });
@@ -93,7 +94,7 @@ pub static MOTOR_SPEED_RPM: LazyLock<Gauge> = LazyLock::new(|| {
 /// Current motor temperature in Celsius
 pub static MOTOR_TEMP_C: LazyLock<Gauge> = LazyLock::new(|| {
     let gauge = Gauge::new(
-        "neuroplc_motor_temperature_celsius",
+        tags::MOTOR_TEMP_C.metric,
         "Current motor temperature in Celsius",
     )
     .unwrap();
@@ -103,11 +104,7 @@ pub static MOTOR_TEMP_C: LazyLock<Gauge> = LazyLock::new(|| {
 
 /// Current system pressure in bar
 pub static PRESSURE_BAR: LazyLock<Gauge> = LazyLock::new(|| {
-    let gauge = Gauge::new(
-        "neuroplc_system_pressure_bar",
-        "Current system pressure in bar",
-    )
-    .unwrap();
+    let gauge = Gauge::new(tags::PRESSURE_BAR.metric, "Current system pressure in bar").unwrap();
     REGISTRY.register(Box::new(gauge.clone())).unwrap();
     gauge
 });
@@ -119,7 +116,7 @@ pub static PRESSURE_BAR: LazyLock<Gauge> = LazyLock::new(|| {
 /// Latest agent recommendation confidence score
 pub static AGENT_CONFIDENCE: LazyLock<Gauge> = LazyLock::new(|| {
     let gauge = Gauge::new(
-        "neuroplc_agent_confidence",
+        tags::AGENT_CONFIDENCE.metric,
         "Latest agent recommendation confidence score (0.0-1.0)",
     )
     .unwrap();
@@ -130,7 +127,7 @@ pub static AGENT_CONFIDENCE: LazyLock<Gauge> = LazyLock::new(|| {
 /// Agent recommended target speed
 pub static AGENT_TARGET_RPM: LazyLock<Gauge> = LazyLock::new(|| {
     let gauge = Gauge::new(
-        "neuroplc_agent_target_rpm",
+        tags::AGENT_TARGET_RPM.metric,
         "Agent recommended target speed in RPM",
     )
     .unwrap();

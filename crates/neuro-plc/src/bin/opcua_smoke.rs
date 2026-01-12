@@ -1,5 +1,6 @@
 #[cfg(feature = "opcua")]
 mod enabled {
+    use core_spine::tags;
     use opcua::client::prelude::*;
     use opcua::types::{
         AttributeId, DataValue, NodeId, QualifiedName, ReadValueId, StatusCode, TimestampsToReturn,
@@ -112,9 +113,12 @@ mod enabled {
         };
 
         if debug {
-            eprintln!("opcua_smoke: reading MotorSpeedRPM");
+            eprintln!("opcua_smoke: reading {}", tags::MOTOR_SPEED_RPM.opcua_node);
         }
-        let value = match read_value(&mut session, NodeId::new(ns_index, "MotorSpeedRPM")) {
+        let value = match read_value(
+            &mut session,
+            NodeId::new(ns_index, tags::MOTOR_SPEED_RPM.opcua_node),
+        ) {
             Ok(value) => value,
             Err(status)
                 if status.contains(StatusCode::BadEncodingLimitsExceeded)

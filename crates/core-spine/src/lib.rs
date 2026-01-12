@@ -3,7 +3,9 @@ pub mod hal;
 pub mod hal_sim;
 pub mod safety;
 mod safety_proptest;
+pub mod safety_supervisor;
 pub mod sync;
+pub mod tags;
 pub mod timebase;
 
 pub use control_loop::{ControlConfig, ExecutionStats, IronThread};

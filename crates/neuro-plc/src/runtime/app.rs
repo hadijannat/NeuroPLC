@@ -1,4 +1,4 @@
-use crate::infra::audit::{AuditEventType, AuditLogger};
+use crate::infra::audit::{hash_bytes, hash_str, AuditEventType, AuditLogger};
 #[cfg(feature = "opcua")]
 use crate::integrations::opcua_server::{run_opcua, OpcuaConfig};
 #[cfg(feature = "rerun")]
@@ -106,6 +106,9 @@ pub fn run(config: RuntimeConfig) {
 
     // Log startup
     if let Some(ref logger) = audit_logger {
+        let config_hash = hash_runtime_config(&config);
+        let binary_hash = current_binary_hash();
+        let cortex_hash = cortex_manifest_hash();
         let _ = logger.log_event(
             timebase.now_us(),
             timebase.unix_us(),
@@ -114,6 +117,9 @@ pub fn run(config: RuntimeConfig) {
                 "version": env!("CARGO_PKG_VERSION"),
                 "bridge_enabled": config.bridge_enabled,
                 "metrics_enabled": metrics_enabled,
+                "config_hash": config_hash,
+                "binary_sha256": binary_hash,
+                "cortex_manifest_sha256": cortex_hash,
             }),
         );
     }
@@ -165,6 +171,7 @@ pub fn run(config: RuntimeConfig) {
     let opcua_handle = if config.opcua_enabled {
         let mut opcua_config = OpcuaConfig::default();
         opcua_config.endpoint = config.opcua_endpoint.clone();
+        opcua_config.secure_only = config.opcua_secure_only;
         info!(endpoint = %opcua_config.endpoint, "Starting OPC UA server");
         Some(run_opcua(
             Arc::clone(&exchange),
@@ -255,11 +262,17 @@ fn build_bridge_config(config: &RuntimeConfig) -> BridgeConfig {
             enabled: config.tls_cert.is_some() && config.tls_key.is_some(),
             cert_path: config.tls_cert.clone().unwrap_or_default(),
             key_path: config.tls_key.clone().unwrap_or_default(),
+            require_client_auth: config.tls_require_client_cert,
+            client_ca_path: config.tls_client_ca.clone().unwrap_or_default(),
         },
         auth: AuthConfig {
             enabled: config.auth_secret.is_some(),
             secret: config.auth_secret.clone().unwrap_or_default().into_bytes(),
             max_age_secs: config.auth_max_age_secs,
+            issuer: config.auth_issuer.clone(),
+            audience: config.auth_audience.clone(),
+            required_scope: config.auth_scope.clone(),
+            ..Default::default()
         },
         ..Default::default()
     }
@@ -276,4 +289,82 @@ fn init_audit_logger(audit_path: Option<&PathBuf>) -> Option<Arc<AuditLogger>> {
             panic!("Audit logging requested but failed to initialize: {}", e);
         }
     })
+}
+
+fn hash_runtime_config(config: &RuntimeConfig) -> String {
+    let mut summary = serde_json::Map::new();
+    summary.insert("bind_addr".to_string(), config.bind_addr.clone().into());
+    summary.insert(
+        "bridge_enabled".to_string(),
+        serde_json::Value::Bool(config.bridge_enabled),
+    );
+    summary.insert(
+        "metrics_addr".to_string(),
+        config.metrics_addr.clone().into(),
+    );
+    summary.insert(
+        "tls_enabled".to_string(),
+        serde_json::Value::Bool(config.tls_cert.is_some() && config.tls_key.is_some()),
+    );
+    summary.insert(
+        "tls_require_client_cert".to_string(),
+        serde_json::Value::Bool(config.tls_require_client_cert),
+    );
+    summary.insert(
+        "auth_enabled".to_string(),
+        serde_json::Value::Bool(config.auth_secret.is_some()),
+    );
+    summary.insert(
+        "auth_max_age_secs".to_string(),
+        serde_json::Value::Number(config.auth_max_age_secs.into()),
+    );
+    summary.insert("auth_issuer".to_string(), config.auth_issuer.clone().into());
+    summary.insert(
+        "auth_audience".to_string(),
+        config.auth_audience.clone().into(),
+    );
+    summary.insert("auth_scope".to_string(), config.auth_scope.clone().into());
+    summary.insert("modbus_addr".to_string(), config.modbus_addr.clone().into());
+
+    #[cfg(feature = "opcua")]
+    {
+        summary.insert(
+            "opcua_enabled".to_string(),
+            serde_json::Value::Bool(config.opcua_enabled),
+        );
+        summary.insert(
+            "opcua_endpoint".to_string(),
+            config.opcua_endpoint.clone().into(),
+        );
+        summary.insert(
+            "opcua_secure_only".to_string(),
+            serde_json::Value::Bool(config.opcua_secure_only),
+        );
+    }
+
+    #[cfg(feature = "rerun")]
+    {
+        summary.insert(
+            "rerun_enabled".to_string(),
+            serde_json::Value::Bool(config.rerun_enabled),
+        );
+        summary.insert(
+            "rerun_save_path".to_string(),
+            config.rerun_save_path.clone().into(),
+        );
+    }
+
+    hash_str(&serde_json::Value::Object(summary).to_string())
+}
+
+fn current_binary_hash() -> Option<String> {
+    let path = std::env::current_exe().ok()?;
+    let bytes = std::fs::read(path).ok()?;
+    Some(hash_bytes(&bytes))
+}
+
+fn cortex_manifest_hash() -> Option<String> {
+    let path = std::path::Path::new("python-cortex/pyproject.toml");
+    let bytes = std::fs::read(path).ok()?;
+    Some(hash_bytes(&bytes))
 }

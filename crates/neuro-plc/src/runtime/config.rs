@@ -11,13 +11,20 @@ pub struct RuntimeConfig {
     pub audit_path: Option<PathBuf>,
     pub tls_cert: Option<String>,
     pub tls_key: Option<String>,
+    pub tls_client_ca: Option<String>,
+    pub tls_require_client_cert: bool,
     pub auth_secret: Option<String>,
     pub auth_max_age_secs: u64,
+    pub auth_issuer: String,
+    pub auth_audience: String,
+    pub auth_scope: Option<String>,
     pub modbus_addr: Option<String>,
     #[cfg(feature = "opcua")]
     pub opcua_enabled: bool,
     #[cfg(feature = "opcua")]
     pub opcua_endpoint: String,
+    #[cfg(feature = "opcua")]
+    pub opcua_secure_only: bool,
     #[cfg(feature = "rerun")]
     pub rerun_enabled: bool,
     #[cfg(feature = "rerun")]
@@ -36,13 +43,20 @@ impl Default for RuntimeConfig {
             audit_path: None,
             tls_cert: None,
             tls_key: None,
+            tls_client_ca: None,
+            tls_require_client_cert: false,
             auth_secret: None,
             auth_max_age_secs: 300,
+            auth_issuer: "neuroplc".to_string(),
+            auth_audience: "neuroplc-spine".to_string(),
+            auth_scope: None,
             modbus_addr: None,
             #[cfg(feature = "opcua")]
             opcua_enabled: false,
             #[cfg(feature = "opcua")]
             opcua_endpoint: "opc.tcp://0.0.0.0:4840".to_string(),
+            #[cfg(feature = "opcua")]
+            opcua_secure_only: false,
             #[cfg(feature = "rerun")]
             rerun_enabled: false,
             #[cfg(feature = "rerun")]
@@ -104,6 +118,15 @@ impl RuntimeConfig {
                         i += 1;
                     }
                 }
+                "--tls-client-ca" => {
+                    if i + 1 < args.len() {
+                        cfg.tls_client_ca = Some(args[i + 1].clone());
+                        i += 1;
+                    }
+                }
+                "--tls-require-client-cert" => {
+                    cfg.tls_require_client_cert = true;
+                }
                 "--auth-secret" => {
                     if i + 1 < args.len() {
                         cfg.auth_secret = Some(args[i + 1].clone());
@@ -113,6 +136,24 @@ impl RuntimeConfig {
                 "--auth-max-age" => {
                     if i + 1 < args.len() {
                         cfg.auth_max_age_secs = args[i + 1].parse().unwrap_or(300);
+                        i += 1;
+                    }
+                }
+                "--auth-issuer" => {
+                    if i + 1 < args.len() {
+                        cfg.auth_issuer = args[i + 1].clone();
+                        i += 1;
+                    }
+                }
+                "--auth-audience" => {
+                    if i + 1 < args.len() {
+                        cfg.auth_audience = args[i + 1].clone();
+                        i += 1;
+                    }
+                }
+                "--auth-scope" => {
+                    if i + 1 < args.len() {
+                        cfg.auth_scope = Some(args[i + 1].clone());
                         i += 1;
                     }
                 }
@@ -132,6 +173,10 @@ impl RuntimeConfig {
                         cfg.opcua_endpoint = args[i + 1].clone();
                         i += 1;
                     }
+                }
+                #[cfg(feature = "opcua")]
+                "--opcua-secure-only" => {
+                    cfg.opcua_secure_only = true;
                 }
                 #[cfg(feature = "rerun")]
                 "--rerun" => {
@@ -172,11 +217,17 @@ OPTIONS:
     --audit-log <PATH>      Enable audit logging to specified JSONL file
     --tls-cert <PATH>       Path to TLS certificate (PEM) for bridge security
     --tls-key <PATH>        Path to TLS private key (PEM)
+    --tls-client-ca <PATH>  Path to client CA bundle (PEM) for mTLS
+    --tls-require-client-cert Require client certificates for TLS
     --auth-secret <STR>     Shared secret for HMAC token authentication
     --auth-max-age <SECS>   Maximum age for auth tokens in seconds [default: 300]
+    --auth-issuer <STR>     Expected token issuer [default: neuroplc]
+    --auth-audience <STR>   Expected token audience [default: neuroplc-spine]
+    --auth-scope <STR>      Required scope for recommendations (optional)
     --modbus <ADDR>         Connect to real hardware via Modbus TCP (e.g. 192.168.1.10:502)
     --opcua                 Enable OPC UA server (requires 'opcua' feature)
     --opcua-endpoint <URL>  OPC UA endpoint URL [default: opc.tcp://0.0.0.0:4840]
+    --opcua-secure-only     Disable insecure OPC UA endpoints (no SecurityMode=None)
     --rerun                 Enable Rerun visualization (requires 'rerun' feature)
     --rerun-save <PATH>     Save Rerun recording to file
     -h, --help              Print this help message

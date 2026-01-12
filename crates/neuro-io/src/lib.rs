@@ -9,5 +9,5 @@ pub use auth::{AuthConfig, AuthError, TokenClaims, TokenValidator};
 pub use bridge::{run_bridge, BridgeConfig};
 pub use hal_modbus::ModbusMotor;
 pub use metrics::{init_metrics, serve_metrics};
-pub use protocol::{IncomingMessage, RecommendationMsg, StateMsg};
+pub use protocol::{IncomingMessage, ProtocolVersion, RecommendationMsg, StateMsg};
 pub use tls::{build_server_config, TlsConfig, TlsError};

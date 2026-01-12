@@ -4,6 +4,7 @@
 //! including recommendations, rejections, and system state changes.
 
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 use std::fs::{File, OpenOptions};
 use std::io::{BufWriter, Write};
 use std::path::Path;
@@ -48,9 +49,22 @@ pub struct AuditEntry {
     pub details: serde_json::Value,
 }
 
+/// A record with hash chaining for tamper evidence
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AuditRecord {
+    pub entry: AuditEntry,
+    pub prev_hash: String,
+    pub entry_hash: String,
+}
+
+struct AuditState {
+    writer: BufWriter<File>,
+    last_hash: String,
+}
+
 /// Thread-safe audit logger that writes to a JSONL file
 pub struct AuditLogger {
-    writer: Mutex<BufWriter<File>>,
+    state: Mutex<AuditState>,
 }
 
 impl AuditLogger {
@@ -65,16 +79,29 @@ impl AuditLogger {
         let file = OpenOptions::new().create(true).append(true).open(path)?;
 
         Ok(Self {
-            writer: Mutex::new(BufWriter::with_capacity(8192, file)),
+            state: Mutex::new(AuditState {
+                writer: BufWriter::with_capacity(8192, file),
+                last_hash: String::from("0"),
+            }),
         })
     }
 
     /// Log an audit entry. This is thread-safe and can be called from any thread.
     pub fn log(&self, entry: AuditEntry) -> std::io::Result<()> {
-        let mut writer = self.writer.lock().unwrap();
-        serde_json::to_writer(&mut *writer, &entry)?;
-        writer.write_all(b"\n")?;
-        writer.flush()
+        let mut state = self.state.lock().unwrap();
+        let prev_hash = state.last_hash.clone();
+        let entry_hash = hash_entry(&entry, &prev_hash);
+        let record = AuditRecord {
+            entry,
+            prev_hash,
+            entry_hash: entry_hash.clone(),
+        };
+
+        serde_json::to_writer(&mut state.writer, &record)?;
+        state.writer.write_all(b"\n")?;
+        state.writer.flush()?;
+        state.last_hash = entry_hash;
+        Ok(())
     }
 
     /// Convenience method to log with just event type and details
@@ -92,6 +119,33 @@ impl AuditLogger {
             details,
         })
     }
+}
+
+pub fn hash_entry(entry: &AuditEntry, prev_hash: &str) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(prev_hash.as_bytes());
+    let entry_bytes = serde_json::to_vec(entry).unwrap_or_default();
+    hasher.update(&entry_bytes);
+    to_hex(&hasher.finalize())
+}
+
+pub fn hash_bytes(bytes: &[u8]) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(bytes);
+    to_hex(&hasher.finalize())
+}
+
+pub fn hash_str(value: &str) -> String {
+    hash_bytes(value.as_bytes())
+}
+
+fn to_hex(bytes: &[u8]) -> String {
+    let mut out = String::with_capacity(bytes.len() * 2);
+    for byte in bytes {
+        use std::fmt::Write;
+        let _ = write!(&mut out, "{:02x}", byte);
+    }
+    out
 }
 
 /// Details for a safety rejection event
@@ -158,19 +212,18 @@ mod tests {
             .unwrap();
 
         // Read back and verify
-        let mut content = String::new();
-        File::open(&path)
-            .unwrap()
-            .read_to_string(&mut content)
-            .unwrap();
+        let mut file = File::open(&path).unwrap();
+        let mut contents = String::new();
+        file.read_to_string(&mut contents).unwrap();
 
-        let lines: Vec<&str> = content.trim().split('\n').collect();
+        let lines: Vec<&str> = contents.lines().collect();
         assert_eq!(lines.len(), 2);
 
-        let entry1: AuditEntry = serde_json::from_str(lines[0]).unwrap();
-        assert_eq!(entry1.timestamp_us, 1000);
+        let first: AuditRecord = serde_json::from_str(lines[0]).unwrap();
+        let second: AuditRecord = serde_json::from_str(lines[1]).unwrap();
 
-        let entry2: AuditEntry = serde_json::from_str(lines[1]).unwrap();
-        assert_eq!(entry2.timestamp_us, 2000);
+        assert_eq!(first.entry.timestamp_us, 1000);
+        assert_eq!(second.entry.timestamp_us, 2000);
+        assert_eq!(second.prev_hash, first.entry_hash);
     }
 }

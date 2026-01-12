@@ -91,12 +91,20 @@ fn test_recommendation_accepted() {
     assert_eq!(state["type"], "state");
 
     // Send valid recommendation
+    let issued_at_unix_us = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_micros() as u64;
     let recommendation = serde_json::json!({
         "type": "recommendation",
+        "protocol_version": { "major": 1, "minor": 0 },
+        "sequence": 1,
+        "issued_at_unix_us": issued_at_unix_us,
+        "ttl_ms": 2_000,
         "target_speed_rpm": 500.0,
         "confidence": 0.9,
         "reasoning_hash": "a".repeat(64),
-        "client_unix_us": 1000000
+        "client_unix_us": issued_at_unix_us
     });
 
     writeln!(stream, "{}", recommendation).unwrap();
@@ -132,12 +140,20 @@ fn test_unsafe_recommendation_rejected() {
     let _initial_speed = initial_state["motor_speed_rpm"].as_f64().unwrap_or(0.0);
 
     // Send unsafe recommendation (above max)
+    let issued_at_unix_us = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_micros() as u64;
     let recommendation = serde_json::json!({
         "type": "recommendation",
+        "protocol_version": { "major": 1, "minor": 0 },
+        "sequence": 1,
+        "issued_at_unix_us": issued_at_unix_us,
+        "ttl_ms": 2_000,
         "target_speed_rpm": 5000.0,  // Above 3000 limit
         "confidence": 0.9,
         "reasoning_hash": "b".repeat(64),
-        "client_unix_us": 1000000
+        "client_unix_us": issued_at_unix_us
     });
 
     writeln!(stream, "{}", recommendation).unwrap();

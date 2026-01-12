@@ -1,5 +1,6 @@
 use crate::hal::MachineIO;
-use crate::safety::{SafetyLimits, Setpoint};
+use crate::safety::SafetyLimits;
+use crate::safety_supervisor::{SafetyState, SafetySupervisor};
 use crate::sync::{ProcessSnapshot, StateExchange};
 use crate::timebase::TimeBase;
 use std::sync::{atomic::AtomicBool, Arc};
@@ -37,6 +38,7 @@ pub struct ExecutionStats {
     pub safety_rejections: u64,
     pub agent_timeouts: u64,
     pub last_recommendation_age_us: u64,
+    pub safety_state: SafetyState,
 }
 
 pub struct IronThread<IO: MachineIO> {
@@ -44,7 +46,7 @@ pub struct IronThread<IO: MachineIO> {
     config: ControlConfig,
     exchange: Arc<StateExchange>,
     stats: ExecutionStats,
-    last_safe_setpoint: f64,
+    safety: SafetySupervisor,
     timebase: TimeBase,
 }
 
@@ -55,12 +57,13 @@ impl<IO: MachineIO> IronThread<IO> {
         exchange: Arc<StateExchange>,
         timebase: TimeBase,
     ) -> Self {
+        let safety = SafetySupervisor::new(config.safety_limits);
         Self {
             io,
             config,
             exchange,
             stats: ExecutionStats::default(),
-            last_safe_setpoint: 0.0,
+            safety,
             timebase,
         }
     }
@@ -101,30 +104,21 @@ impl<IO: MachineIO> IronThread<IO> {
                 Some(rec) if rec.target_speed_rpm.is_some() => {
                     self.stats.last_recommendation_age_us =
                         timestamp_us.saturating_sub(rec.timestamp_us);
-                    rec.target_speed_rpm.unwrap()
+                    rec.target_speed_rpm
                 }
                 _ => {
                     self.stats.agent_timeouts += 1;
-                    self.last_safe_setpoint
+                    None
                 }
             };
 
-            // Safety validation
-            let raw_setpoint = Setpoint::new(target_speed);
-            let validated =
-                raw_setpoint.validate(&self.config.safety_limits, current_speed, current_temp);
-
-            let output_speed = match validated {
-                Ok(safe_setpoint) => {
-                    let speed = safe_setpoint.value();
-                    self.last_safe_setpoint = speed;
-                    speed
-                }
-                Err(_violation) => {
-                    self.stats.safety_rejections += 1;
-                    self.last_safe_setpoint
-                }
-            };
+            let (output_speed, violation) =
+                self.safety
+                    .apply_recommendation(target_speed, current_speed, current_temp);
+            if violation.is_some() {
+                self.stats.safety_rejections += 1;
+            }
+            self.stats.safety_state = self.safety.state();
 
             // Write outputs
             self.io.write_speed(output_speed);

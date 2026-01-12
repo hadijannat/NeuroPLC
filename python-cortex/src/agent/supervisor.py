@@ -1,9 +1,12 @@
 import argparse
+import base64
 import json
 import os
 import socket
 import time
 import hashlib
+import hmac
+import secrets
 from typing import Optional
 
 from digital_twin import BasyxAdapter, BasyxConfig
@@ -115,12 +118,36 @@ def run(host: str, port: int, attack_mode: bool, model_path: Optional[str] = Non
         )
         basyx_adapter = BasyxAdapter(basyx_config)
 
+    auth_secret = os.getenv("NEUROPLC_AUTH_SECRET")
+    auth_issuer = os.getenv("NEUROPLC_AUTH_ISSUER", "neuroplc")
+    auth_audience = os.getenv("NEUROPLC_AUTH_AUDIENCE", "neuroplc-spine")
+    auth_scope = os.getenv("NEUROPLC_AUTH_SCOPE", "cortex:recommend")
+    auth_max_age = int(os.getenv("NEUROPLC_AUTH_MAX_AGE", "300"))
+
+    def _b64url(data: bytes) -> str:
+        return base64.urlsafe_b64encode(data).rstrip(b"=").decode("ascii")
+
+    def _auth_token(now_s: int) -> str:
+        claims = {
+            "iss": auth_issuer,
+            "sub": "python-cortex",
+            "aud": auth_audience,
+            "scope": [auth_scope],
+            "iat": now_s,
+            "exp": now_s + auth_max_age,
+            "nonce": secrets.token_hex(16),
+        }
+        payload = json.dumps(claims, separators=(",", ":"), sort_keys=True).encode("utf-8")
+        signature = hmac.new(auth_secret.encode("utf-8"), payload, hashlib.sha256).digest()
+        return f"{_b64url(payload)}.{_b64url(signature)}"
+
     while True:
         try:
             with socket.create_connection(addr, timeout=5) as sock:
                 sock.settimeout(1.0)
                 file = sock.makefile("rwb")
                 print(f"Connected to spine at {host}:{port}")
+                sequence = 0
                 while True:
                     line = file.readline()
                     if not line:
@@ -146,13 +173,21 @@ def run(host: str, port: int, attack_mode: bool, model_path: Optional[str] = Non
                     )
                     reasoning_hash = hash_envelope(envelope)
 
+                    sequence += 1
+                    issued_at_unix_us = int(time.time() * 1_000_000)
                     msg = {
                         "type": "recommendation",
+                        "protocol_version": {"major": 1, "minor": 0},
+                        "sequence": sequence,
+                        "issued_at_unix_us": issued_at_unix_us,
+                        "ttl_ms": 1000,
                         "target_speed_rpm": target,
                         "confidence": confidence,
                         "reasoning_hash": reasoning_hash,
-                        "client_unix_us": int(time.time() * 1_000_000),
+                        "client_unix_us": issued_at_unix_us,
                     }
+                    if auth_secret:
+                        msg["auth_token"] = _auth_token(int(time.time()))
                     file.write((json.dumps(msg) + "\n").encode("utf-8"))
                     file.flush()
 

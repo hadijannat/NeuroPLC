@@ -1,6 +1,6 @@
 #![cfg(feature = "rerun")]
 
-use core_spine::{StateExchange, TimeBase};
+use core_spine::{tags, StateExchange, TimeBase};
 use rerun::{RecordingStream, RecordingStreamBuilder, Scalar};
 use std::path::PathBuf;
 use std::sync::{atomic::AtomicBool, Arc};
@@ -59,20 +59,29 @@ fn log_snapshot(rec: &RecordingStream, exchange: &StateExchange, timebase: &Time
     let time_s = snapshot.timestamp_us as f64 / 1_000_000.0;
     rec.set_time_seconds("sim_time", time_s);
 
-    let _ = rec.log("motor/speed/actual", &Scalar::new(snapshot.motor_speed_rpm));
-    let _ = rec.log("motor/temperature", &Scalar::new(snapshot.motor_temp_c));
-    let _ = rec.log("motor/pressure", &Scalar::new(snapshot.pressure_bar));
     let _ = rec.log(
-        "system/cycle_jitter_us",
+        tags::MOTOR_SPEED_RPM.rerun_path,
+        &Scalar::new(snapshot.motor_speed_rpm),
+    );
+    let _ = rec.log(
+        tags::MOTOR_TEMP_C.rerun_path,
+        &Scalar::new(snapshot.motor_temp_c),
+    );
+    let _ = rec.log(
+        tags::PRESSURE_BAR.rerun_path,
+        &Scalar::new(snapshot.pressure_bar),
+    );
+    let _ = rec.log(
+        tags::CYCLE_JITTER_US.rerun_path,
         &Scalar::new(snapshot.cycle_jitter_us as f64),
     );
 
     if let Some(rec_msg) = exchange.get_recommendation(timebase.now_us()) {
         if let Some(target) = rec_msg.target_speed_rpm {
-            let _ = rec.log("motor/speed/agent_target", &Scalar::new(target));
+            let _ = rec.log(tags::AGENT_TARGET_RPM.rerun_path, &Scalar::new(target));
         }
         let _ = rec.log(
-            "motor/agent/confidence",
+            tags::AGENT_CONFIDENCE.rerun_path,
             &Scalar::new(rec_msg.confidence as f64),
         );
     }

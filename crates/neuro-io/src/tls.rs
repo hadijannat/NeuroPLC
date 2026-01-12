@@ -3,7 +3,8 @@
 //! This module provides TLS server configuration for the bridge.
 
 use rustls::pki_types::{CertificateDer, PrivateKeyDer};
-use rustls::ServerConfig;
+use rustls::server::WebPkiClientVerifier;
+use rustls::{RootCertStore, ServerConfig};
 use rustls_pemfile::{certs, private_key};
 use std::fs::File;
 use std::io::BufReader;
@@ -36,13 +37,26 @@ pub struct TlsConfig {
     pub key_path: String,
     /// Whether TLS is enabled
     pub enabled: bool,
+    /// Require client certificates (mTLS)
+    pub require_client_auth: bool,
+    /// Path to client CA bundle (PEM format)
+    pub client_ca_path: String,
 }
 
 impl TlsConfig {
     /// Check if TLS is properly configured
     #[allow(dead_code)]
     pub fn is_configured(&self) -> bool {
-        self.enabled && !self.cert_path.is_empty() && !self.key_path.is_empty()
+        if !self.enabled {
+            return false;
+        }
+        if self.cert_path.is_empty() || self.key_path.is_empty() {
+            return false;
+        }
+        if self.require_client_auth && self.client_ca_path.is_empty() {
+            return false;
+        }
+        true
     }
 }
 
@@ -75,11 +89,28 @@ pub fn load_private_key(path: &Path) -> Result<PrivateKeyDer<'static>, TlsError>
 pub fn build_server_config(config: &TlsConfig) -> Result<Arc<ServerConfig>, TlsError> {
     let certs = load_certs(Path::new(&config.cert_path))?;
     let key = load_private_key(Path::new(&config.key_path))?;
-
-    let server_config = ServerConfig::builder()
-        .with_no_client_auth()
-        .with_single_cert(certs, key)
-        .map_err(|e| TlsError::ConfigError(e.to_string()))?;
+    let builder = ServerConfig::builder();
+    let server_config = if config.require_client_auth {
+        let ca_certs = load_certs(Path::new(&config.client_ca_path))?;
+        let mut roots = RootCertStore::empty();
+        for cert in ca_certs {
+            roots
+                .add(cert)
+                .map_err(|e| TlsError::ConfigError(format!("{e:?}")))?;
+        }
+        let verifier = WebPkiClientVerifier::builder(roots.into())
+            .build()
+            .map_err(|e| TlsError::ConfigError(e.to_string()))?;
+        builder
+            .with_client_cert_verifier(verifier)
+            .with_single_cert(certs, key)
+            .map_err(|e| TlsError::ConfigError(e.to_string()))?
+    } else {
+        builder
+            .with_no_client_auth()
+            .with_single_cert(certs, key)
+            .map_err(|e| TlsError::ConfigError(e.to_string()))?
+    };
 
     Ok(Arc::new(server_config))
 }
@@ -117,6 +148,8 @@ mod tests {
             enabled: true,
             cert_path: "/path/to/cert.pem".to_string(),
             key_path: "/path/to/key.pem".to_string(),
+            require_client_auth: false,
+            client_ca_path: String::new(),
         };
 
         assert!(config.is_configured());

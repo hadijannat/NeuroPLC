@@ -1,6 +1,6 @@
 #![cfg(feature = "opcua")]
 
-use core_spine::{StateExchange, TimeBase};
+use core_spine::{tags, StateExchange, TimeBase};
 use opcua::server::config::{ServerEndpoint, ServerUserToken, ANONYMOUS_USER_TOKEN_ID};
 use opcua::server::prelude::*;
 use std::sync::{atomic::AtomicBool, Arc};
@@ -12,6 +12,7 @@ use tracing::{info, warn};
 pub struct OpcuaConfig {
     pub endpoint: String,
     pub update_interval: Duration,
+    pub secure_only: bool,
 }
 
 impl Default for OpcuaConfig {
@@ -19,6 +20,7 @@ impl Default for OpcuaConfig {
         Self {
             endpoint: "opc.tcp://0.0.0.0:4840".to_string(),
             update_interval: Duration::from_millis(200),
+            secure_only: false,
         }
     }
 }
@@ -33,6 +35,21 @@ pub fn run_opcua(
 
     let anon_tokens = vec![ANONYMOUS_USER_TOKEN_ID.to_string()];
     let secure_tokens = vec![ANONYMOUS_USER_TOKEN_ID.to_string(), "admin".to_string()];
+
+    let endpoints = if config.secure_only {
+        vec![(
+            "basic256sha256_sign_encrypt",
+            ServerEndpoint::new_basic256sha256_sign_encrypt("/", &secure_tokens),
+        )]
+    } else {
+        vec![
+            ("none", ServerEndpoint::new_none("/", &anon_tokens)),
+            (
+                "basic256sha256_sign_encrypt",
+                ServerEndpoint::new_basic256sha256_sign_encrypt("/", &secure_tokens),
+            ),
+        ]
+    };
 
     let server_config = ServerBuilder::new()
         .application_name("NeuroPLC OPC UA")
@@ -50,13 +67,7 @@ pub fn run_opcua(
             "admin",
             ServerUserToken::user_pass("admin", "neuroplc-secret"),
         )
-        .endpoints(vec![
-            ("none", ServerEndpoint::new_none("/", &anon_tokens)),
-            (
-                "basic256sha256_sign_encrypt",
-                ServerEndpoint::new_basic256sha256_sign_encrypt("/", &secure_tokens),
-            ),
-        ])
+        .endpoints(endpoints)
         .discovery_urls(vec!["/".to_string()])
         .config();
 
@@ -73,43 +84,71 @@ pub fn run_opcua(
             .add_folder("NeuroPLC", "NeuroPLC", &objects)
             .unwrap_or_else(|_| NodeId::objects_folder_id());
 
-        let speed_id = NodeId::new(ns, "MotorSpeedRPM");
-        let temp_id = NodeId::new(ns, "MotorTemperatureC");
-        let pressure_id = NodeId::new(ns, "SystemPressureBar");
-        let jitter_id = NodeId::new(ns, "CycleJitterUs");
-        let timestamp_id = NodeId::new(ns, "TimestampUs");
-        let agent_target_id = NodeId::new(ns, "AgentTargetRPM");
-        let agent_conf_id = NodeId::new(ns, "AgentConfidence");
+        let speed_id = NodeId::new(ns, tags::MOTOR_SPEED_RPM.opcua_node);
+        let temp_id = NodeId::new(ns, tags::MOTOR_TEMP_C.opcua_node);
+        let pressure_id = NodeId::new(ns, tags::PRESSURE_BAR.opcua_node);
+        let jitter_id = NodeId::new(ns, tags::CYCLE_JITTER_US.opcua_node);
+        let timestamp_id = NodeId::new(ns, tags::TIMESTAMP_US.opcua_node);
+        let agent_target_id = NodeId::new(ns, tags::AGENT_TARGET_RPM.opcua_node);
+        let agent_conf_id = NodeId::new(ns, tags::AGENT_CONFIDENCE.opcua_node);
 
         let variables = vec![
-            VariableBuilder::new(&speed_id, "MotorSpeedRPM", "MotorSpeedRPM")
-                .data_type(DataTypeId::Double)
-                .value(0.0)
-                .build(),
-            VariableBuilder::new(&temp_id, "MotorTemperatureC", "MotorTemperatureC")
-                .data_type(DataTypeId::Double)
-                .value(0.0)
-                .build(),
-            VariableBuilder::new(&pressure_id, "SystemPressureBar", "SystemPressureBar")
-                .data_type(DataTypeId::Double)
-                .value(0.0)
-                .build(),
-            VariableBuilder::new(&jitter_id, "CycleJitterUs", "CycleJitterUs")
-                .data_type(DataTypeId::UInt32)
-                .value(0u32)
-                .build(),
-            VariableBuilder::new(&timestamp_id, "TimestampUs", "TimestampUs")
-                .data_type(DataTypeId::UInt64)
-                .value(0u64)
-                .build(),
-            VariableBuilder::new(&agent_target_id, "AgentTargetRPM", "AgentTargetRPM")
-                .data_type(DataTypeId::Double)
-                .value(0.0)
-                .build(),
-            VariableBuilder::new(&agent_conf_id, "AgentConfidence", "AgentConfidence")
-                .data_type(DataTypeId::Double)
-                .value(0.0)
-                .build(),
+            VariableBuilder::new(
+                &speed_id,
+                tags::MOTOR_SPEED_RPM.opcua_node,
+                tags::MOTOR_SPEED_RPM.opcua_node,
+            )
+            .data_type(DataTypeId::Double)
+            .value(0.0)
+            .build(),
+            VariableBuilder::new(
+                &temp_id,
+                tags::MOTOR_TEMP_C.opcua_node,
+                tags::MOTOR_TEMP_C.opcua_node,
+            )
+            .data_type(DataTypeId::Double)
+            .value(0.0)
+            .build(),
+            VariableBuilder::new(
+                &pressure_id,
+                tags::PRESSURE_BAR.opcua_node,
+                tags::PRESSURE_BAR.opcua_node,
+            )
+            .data_type(DataTypeId::Double)
+            .value(0.0)
+            .build(),
+            VariableBuilder::new(
+                &jitter_id,
+                tags::CYCLE_JITTER_US.opcua_node,
+                tags::CYCLE_JITTER_US.opcua_node,
+            )
+            .data_type(DataTypeId::UInt32)
+            .value(0u32)
+            .build(),
+            VariableBuilder::new(
+                &timestamp_id,
+                tags::TIMESTAMP_US.opcua_node,
+                tags::TIMESTAMP_US.opcua_node,
+            )
+            .data_type(DataTypeId::UInt64)
+            .value(0u64)
+            .build(),
+            VariableBuilder::new(
+                &agent_target_id,
+                tags::AGENT_TARGET_RPM.opcua_node,
+                tags::AGENT_TARGET_RPM.opcua_node,
+            )
+            .data_type(DataTypeId::Double)
+            .value(0.0)
+            .build(),
+            VariableBuilder::new(
+                &agent_conf_id,
+                tags::AGENT_CONFIDENCE.opcua_node,
+                tags::AGENT_CONFIDENCE.opcua_node,
+            )
+            .data_type(DataTypeId::Double)
+            .value(0.0)
+            .build(),
         ];
 
         space.add_variables(variables, &folder_id);

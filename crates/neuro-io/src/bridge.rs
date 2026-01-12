@@ -58,6 +58,42 @@ impl Write for BridgeStream {
     }
 }
 
+#[derive(Debug)]
+struct InboundState {
+    last_sequence: Option<u64>,
+}
+
+impl InboundState {
+    fn new() -> Self {
+        Self {
+            last_sequence: None,
+        }
+    }
+
+    fn reset(&mut self) {
+        self.last_sequence = None;
+    }
+
+    fn accept_sequence(&mut self, sequence: u64) -> bool {
+        if sequence == 0 {
+            warn!("Recommendation sequence missing or zero");
+            return false;
+        }
+        if let Some(last) = self.last_sequence {
+            if sequence <= last {
+                warn!(
+                    sequence,
+                    last_sequence = last,
+                    "Out-of-order recommendation sequence"
+                );
+                return false;
+            }
+        }
+        self.last_sequence = Some(sequence);
+        true
+    }
+}
+
 pub fn run_bridge(
     exchange: Arc<StateExchange>,
     timebase: TimeBase,
@@ -98,6 +134,8 @@ pub fn run_bridge(
     let mut client: Option<BridgeStream> = None;
     let mut recv_buf: Vec<u8> = Vec::with_capacity(4096);
     let mut last_publish = Instant::now();
+    let mut state_sequence: u64 = 0;
+    let mut inbound_state = InboundState::new();
 
     loop {
         if stop.load(std::sync::atomic::Ordering::Relaxed) {
@@ -154,7 +192,13 @@ pub fn run_bridge(
                                 continue;
                             }
                             if let Some(msg) = IncomingMessage::parse(trimmed) {
-                                handle_incoming(msg, &exchange, &timebase, &validator);
+                                handle_incoming(
+                                    msg,
+                                    &exchange,
+                                    &timebase,
+                                    &validator,
+                                    &mut inbound_state,
+                                );
                             }
                         }
                     }
@@ -169,9 +213,12 @@ pub fn run_bridge(
 
             // Publish state
             if last_publish.elapsed() >= config.publish_interval {
+                state_sequence = state_sequence.wrapping_add(1);
                 let snapshot = exchange.read_state();
                 let msg = StateMsg {
                     msg_type: "state",
+                    protocol_version: crate::protocol::ProtocolVersion::v1(),
+                    sequence: state_sequence,
                     timestamp_us: snapshot.timestamp_us,
                     unix_us: timebase.unix_us(),
                     motor_speed_rpm: snapshot.motor_speed_rpm,
@@ -197,6 +244,7 @@ pub fn run_bridge(
         if drop_client {
             client = None;
             recv_buf.clear();
+            inbound_state.reset();
         }
 
         std::thread::sleep(Duration::from_millis(5));
@@ -209,10 +257,50 @@ fn handle_incoming(
     exchange: &StateExchange,
     timebase: &TimeBase,
     validator: &Option<TokenValidator>,
+    inbound_state: &mut InboundState,
 ) {
     match msg {
         IncomingMessage::Recommendation(rec) => {
             Span::current().record("reasoning_hash", rec.reasoning_hash.as_str());
+
+            if !rec.protocol_version.is_supported() {
+                warn!(
+                    major = rec.protocol_version.major,
+                    minor = rec.protocol_version.minor,
+                    "Unsupported protocol version"
+                );
+                return;
+            }
+
+            if !inbound_state.accept_sequence(rec.sequence) {
+                return;
+            }
+
+            if rec.ttl_ms == 0 {
+                warn!("Missing recommendation TTL");
+                return;
+            }
+            if rec.issued_at_unix_us == 0 {
+                warn!("Missing recommendation issued_at_unix_us");
+                return;
+            }
+            let now_unix_us = timebase.unix_us();
+            const MAX_CLOCK_SKEW_MS: u64 = 5_000;
+            let max_skew_us = MAX_CLOCK_SKEW_MS * 1_000;
+            if rec.issued_at_unix_us > now_unix_us.saturating_add(max_skew_us) {
+                warn!(
+                    issued_at_unix_us = rec.issued_at_unix_us,
+                    now_unix_us, "Recommendation timestamp is too far in the future"
+                );
+                return;
+            }
+            let age_ms = now_unix_us
+                .saturating_sub(rec.issued_at_unix_us)
+                .saturating_div(1_000);
+            if age_ms > rec.ttl_ms {
+                warn!(age_ms, ttl_ms = rec.ttl_ms, "Recommendation expired");
+                return;
+            }
 
             // Check authentication
             if let Some(val) = validator {
