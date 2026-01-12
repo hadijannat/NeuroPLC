@@ -1,6 +1,9 @@
 use crate::auth::{AuthConfig, TokenValidator};
-use crate::metrics::{AGENT_CONFIDENCE, AGENT_TARGET_RPM, BRIDGE_CONNECTED};
-use crate::protocol::{IncomingMessage, StateMsg};
+use crate::metrics::{
+    AGENT_CONFIDENCE, AGENT_TARGET_RPM, AUTH_FAILURES, AUTH_MISSING, BRIDGE_CONNECTED,
+    RECOMMENDATION_EXPIRED, RECOMMENDATION_OUT_OF_ORDER,
+};
+use crate::protocol::{HelloMsg, IncomingMessage, StateMsg};
 use crate::tls::{build_server_config, TlsConfig};
 use core_spine::{AgentRecommendation, StateExchange, TimeBase};
 use rustls::{ServerConnection, StreamOwned};
@@ -15,6 +18,7 @@ pub struct BridgeConfig {
     pub publish_interval: Duration,
     pub tls: TlsConfig,
     pub auth: AuthConfig,
+    pub require_handshake: bool,
 }
 
 impl Default for BridgeConfig {
@@ -24,6 +28,7 @@ impl Default for BridgeConfig {
             publish_interval: Duration::from_millis(100),
             tls: TlsConfig::default(),
             auth: AuthConfig::default(),
+            require_handshake: false,
         }
     }
 }
@@ -61,17 +66,26 @@ impl Write for BridgeStream {
 #[derive(Debug)]
 struct InboundState {
     last_sequence: Option<u64>,
+    handshake_seen: bool,
+    capabilities: Vec<String>,
+    client_id: Option<String>,
 }
 
 impl InboundState {
     fn new() -> Self {
         Self {
             last_sequence: None,
+            handshake_seen: false,
+            capabilities: Vec::new(),
+            client_id: None,
         }
     }
 
     fn reset(&mut self) {
         self.last_sequence = None;
+        self.handshake_seen = false;
+        self.capabilities.clear();
+        self.client_id = None;
     }
 
     fn accept_sequence(&mut self, sequence: u64) -> bool {
@@ -91,6 +105,12 @@ impl InboundState {
         }
         self.last_sequence = Some(sequence);
         true
+    }
+
+    fn note_handshake(&mut self, hello: &HelloMsg) {
+        self.handshake_seen = true;
+        self.capabilities = hello.capabilities.clone();
+        self.client_id = hello.client_id.clone();
     }
 }
 
@@ -199,6 +219,7 @@ pub fn run_bridge(
                                     &exchange,
                                     &timebase,
                                     &validator,
+                                    config.require_handshake,
                                     &mut inbound_state,
                                 );
                             }
@@ -222,6 +243,7 @@ pub fn run_bridge(
                     protocol_version: crate::protocol::ProtocolVersion::v1(),
                     sequence: state_sequence,
                     timestamp_us: snapshot.timestamp_us,
+                    cycle_count: snapshot.cycle_count,
                     unix_us: timebase.unix_us(),
                     motor_speed_rpm: snapshot.motor_speed_rpm,
                     motor_temp_c: snapshot.motor_temp_c,
@@ -278,9 +300,26 @@ fn handle_incoming(
     exchange: &StateExchange,
     timebase: &TimeBase,
     validator: &Option<TokenValidator>,
+    require_handshake: bool,
     inbound_state: &mut InboundState,
 ) {
     match msg {
+        IncomingMessage::Hello(hello) => {
+            if !hello.protocol_version.is_supported() {
+                warn!(
+                    major = hello.protocol_version.major,
+                    minor = hello.protocol_version.minor,
+                    "Unsupported protocol version"
+                );
+                return;
+            }
+            inbound_state.note_handshake(&hello);
+            info!(
+                client_id = ?hello.client_id,
+                capabilities = ?hello.capabilities,
+                "Bridge handshake received"
+            );
+        }
         IncomingMessage::Recommendation(rec) => {
             Span::current().record("reasoning_hash", rec.reasoning_hash.as_str());
 
@@ -293,7 +332,13 @@ fn handle_incoming(
                 return;
             }
 
+            if require_handshake && !inbound_state.handshake_seen {
+                warn!("Recommendation received before handshake");
+                return;
+            }
+
             if !inbound_state.accept_sequence(rec.sequence) {
+                RECOMMENDATION_OUT_OF_ORDER.inc();
                 return;
             }
 
@@ -320,6 +365,7 @@ fn handle_incoming(
                 .saturating_div(1_000);
             if age_ms > rec.ttl_ms {
                 warn!(age_ms, ttl_ms = rec.ttl_ms, "Recommendation expired");
+                RECOMMENDATION_EXPIRED.inc();
                 return;
             }
 
@@ -329,11 +375,13 @@ fn handle_incoming(
                     Some(token) => {
                         if let Err(e) = val.validate(token) {
                             warn!(error = %e, "Invalid auth token");
+                            AUTH_FAILURES.inc();
                             return;
                         }
                     }
                     None => {
                         warn!("Missing auth token");
+                        AUTH_MISSING.inc();
                         return;
                     }
                 }

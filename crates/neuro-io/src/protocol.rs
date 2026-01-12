@@ -32,6 +32,7 @@ pub struct StateMsg {
     pub protocol_version: ProtocolVersion,
     pub sequence: u64,
     pub timestamp_us: u64,
+    pub cycle_count: u64,
     pub unix_us: u64,
     pub motor_speed_rpm: f64,
     pub motor_temp_c: f64,
@@ -60,18 +61,36 @@ pub struct RecommendationMsg {
     pub auth_token: Option<String>,
 }
 
+#[derive(Debug, Deserialize)]
+pub struct HelloMsg {
+    #[serde(rename = "type")]
+    pub msg_type: String,
+    #[serde(default)]
+    pub protocol_version: ProtocolVersion,
+    #[serde(default)]
+    pub capabilities: Vec<String>,
+    #[serde(default)]
+    pub client_id: Option<String>,
+}
+
 #[derive(Debug)]
 pub enum IncomingMessage {
+    Hello(HelloMsg),
     Recommendation(RecommendationMsg),
 }
 
 impl IncomingMessage {
     pub fn parse(line: &str) -> Option<Self> {
-        let parsed: RecommendationMsg = serde_json::from_str(line).ok()?;
-        if parsed.msg_type == "recommendation" {
-            Some(IncomingMessage::Recommendation(parsed))
-        } else {
-            None
+        let value: serde_json::Value = serde_json::from_str(line).ok()?;
+        let msg_type = value.get("type")?.as_str()?;
+        match msg_type {
+            "recommendation" => serde_json::from_value(value)
+                .ok()
+                .map(IncomingMessage::Recommendation),
+            "hello" => serde_json::from_value(value)
+                .ok()
+                .map(IncomingMessage::Hello),
+            _ => None,
         }
     }
 }

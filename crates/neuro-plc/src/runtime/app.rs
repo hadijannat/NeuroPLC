@@ -125,6 +125,14 @@ pub fn run(config: RuntimeConfig) {
     }
 
     let stop = Arc::new(AtomicBool::new(false));
+    let metrics_updater = if metrics_enabled {
+        Some(telemetry::start_metrics_updater(
+            Arc::clone(&exchange),
+            Arc::clone(&stop),
+        ))
+    } else {
+        None
+    };
 
     let exchange_iron = Arc::clone(&exchange);
     let stop_iron = Arc::clone(&stop);
@@ -172,6 +180,9 @@ pub fn run(config: RuntimeConfig) {
         let mut opcua_config = OpcuaConfig::default();
         opcua_config.endpoint = config.opcua_endpoint.clone();
         opcua_config.secure_only = config.opcua_secure_only;
+        opcua_config.allow_anonymous = config.opcua_allow_anonymous;
+        opcua_config.username = config.opcua_user.clone();
+        opcua_config.password = config.opcua_password.clone();
         info!(endpoint = %opcua_config.endpoint, "Starting OPC UA server");
         Some(run_opcua(
             Arc::clone(&exchange),
@@ -209,6 +220,9 @@ pub fn run(config: RuntimeConfig) {
         if let Some(handle) = bridge_handle {
             let _ = handle.join();
         }
+        if let Some(handle) = metrics_updater {
+            let _ = handle.join();
+        }
         #[cfg(feature = "opcua")]
         if let Some(handle) = opcua_handle {
             let _ = handle.join();
@@ -223,6 +237,7 @@ pub fn run(config: RuntimeConfig) {
             cycles_missed = stats.cycles_missed,
             safety_rejections = stats.safety_rejections,
             max_jitter_us = stats.max_jitter_us,
+            timing_violations = stats.timing_violations,
             "Run complete"
         );
 
@@ -236,12 +251,16 @@ pub fn run(config: RuntimeConfig) {
                     "cycles_executed": stats.cycles_executed,
                     "cycles_missed": stats.cycles_missed,
                     "safety_rejections": stats.safety_rejections,
+                    "timing_violations": stats.timing_violations,
                 }),
             );
         }
     } else {
         let _ = iron_handle.join();
         if let Some(handle) = bridge_handle {
+            let _ = handle.join();
+        }
+        if let Some(handle) = metrics_updater {
             let _ = handle.join();
         }
         #[cfg(feature = "opcua")]
@@ -274,6 +293,7 @@ fn build_bridge_config(config: &RuntimeConfig) -> BridgeConfig {
             required_scope: config.auth_scope.clone(),
             ..Default::default()
         },
+        require_handshake: config.bridge_require_handshake,
         ..Default::default()
     }
 }
@@ -315,6 +335,10 @@ fn hash_runtime_config(config: &RuntimeConfig) -> String {
         serde_json::Value::Bool(config.auth_secret.is_some()),
     );
     summary.insert(
+        "bridge_require_handshake".to_string(),
+        serde_json::Value::Bool(config.bridge_require_handshake),
+    );
+    summary.insert(
         "auth_max_age_secs".to_string(),
         serde_json::Value::Number(config.auth_max_age_secs.into()),
     );
@@ -339,6 +363,14 @@ fn hash_runtime_config(config: &RuntimeConfig) -> String {
         summary.insert(
             "opcua_secure_only".to_string(),
             serde_json::Value::Bool(config.opcua_secure_only),
+        );
+        summary.insert(
+            "opcua_allow_anonymous".to_string(),
+            serde_json::Value::Bool(config.opcua_allow_anonymous),
+        );
+        summary.insert(
+            "opcua_user_configured".to_string(),
+            serde_json::Value::Bool(config.opcua_user.is_some()),
         );
     }
 

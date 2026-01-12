@@ -80,6 +80,61 @@ pub static AGENT_TIMEOUTS: LazyLock<IntCounter> = LazyLock::new(|| {
     counter
 });
 
+/// Control loop timing violations (jitter over configured threshold)
+pub static TIMING_VIOLATIONS: LazyLock<IntCounter> = LazyLock::new(|| {
+    let counter = IntCounter::new(
+        "neuroplc_timing_violations_total",
+        "Control loop timing violations (jitter threshold exceeded)",
+    )
+    .unwrap();
+    REGISTRY.register(Box::new(counter.clone())).unwrap();
+    counter
+});
+
+/// Recommendation expired before processing
+pub static RECOMMENDATION_EXPIRED: LazyLock<IntCounter> = LazyLock::new(|| {
+    let counter = IntCounter::new(
+        "neuroplc_recommendation_expired_total",
+        "Recommendations rejected due to expired TTL",
+    )
+    .unwrap();
+    REGISTRY.register(Box::new(counter.clone())).unwrap();
+    counter
+});
+
+/// Recommendation sequence out-of-order
+pub static RECOMMENDATION_OUT_OF_ORDER: LazyLock<IntCounter> = LazyLock::new(|| {
+    let counter = IntCounter::new(
+        "neuroplc_recommendation_out_of_order_total",
+        "Recommendations rejected due to out-of-order sequence",
+    )
+    .unwrap();
+    REGISTRY.register(Box::new(counter.clone())).unwrap();
+    counter
+});
+
+/// Authentication failures for agent recommendations
+pub static AUTH_FAILURES: LazyLock<IntCounter> = LazyLock::new(|| {
+    let counter = IntCounter::new(
+        "neuroplc_auth_failures_total",
+        "Recommendations rejected due to invalid auth tokens",
+    )
+    .unwrap();
+    REGISTRY.register(Box::new(counter.clone())).unwrap();
+    counter
+});
+
+/// Missing authentication tokens when required
+pub static AUTH_MISSING: LazyLock<IntCounter> = LazyLock::new(|| {
+    let counter = IntCounter::new(
+        "neuroplc_auth_missing_total",
+        "Recommendations rejected due to missing auth tokens",
+    )
+    .unwrap();
+    REGISTRY.register(Box::new(counter.clone())).unwrap();
+    counter
+});
+
 // ============================================================================
 // Process State Metrics
 // ============================================================================
@@ -220,6 +275,11 @@ pub fn init_metrics() {
     let _ = CYCLE_JITTER_US.get_sample_count();
     let _ = SAFETY_REJECTIONS.get();
     let _ = AGENT_TIMEOUTS.get();
+    let _ = TIMING_VIOLATIONS.get();
+    let _ = RECOMMENDATION_EXPIRED.get();
+    let _ = RECOMMENDATION_OUT_OF_ORDER.get();
+    let _ = AUTH_FAILURES.get();
+    let _ = AUTH_MISSING.get();
     let _ = MOTOR_SPEED_RPM.get();
     let _ = MOTOR_TEMP_C.get();
     let _ = PRESSURE_BAR.get();

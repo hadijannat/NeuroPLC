@@ -12,6 +12,8 @@ pub struct ControlConfig {
     pub safety_limits: SafetyLimits,
     pub recommendation_timeout: Duration,
     pub watchdog_timeout: Duration,
+    pub max_jitter_us: u64,
+    pub jitter_trip_after: u32,
 }
 
 impl Default for ControlConfig {
@@ -26,6 +28,8 @@ impl Default for ControlConfig {
             },
             recommendation_timeout: Duration::from_millis(500),
             watchdog_timeout: Duration::from_millis(100),
+            max_jitter_us: 500,
+            jitter_trip_after: 3,
         }
     }
 }
@@ -39,6 +43,7 @@ pub struct ExecutionStats {
     pub agent_timeouts: u64,
     pub last_recommendation_age_us: u64,
     pub safety_state: SafetyState,
+    pub timing_violations: u64,
 }
 
 pub struct IronThread<IO: MachineIO> {
@@ -118,7 +123,6 @@ impl<IO: MachineIO> IronThread<IO> {
             if violation.is_some() {
                 self.stats.safety_rejections += 1;
             }
-            self.stats.safety_state = self.safety.state();
 
             // Write outputs
             self.io.write_speed(output_speed);
@@ -131,10 +135,22 @@ impl<IO: MachineIO> IronThread<IO> {
                 0
             };
             self.stats.max_jitter_us = self.stats.max_jitter_us.max(jitter_us);
+            if self.safety.note_timing_jitter(
+                jitter_us,
+                self.config.max_jitter_us,
+                self.config.jitter_trip_after,
+            ) {
+                self.stats.timing_violations += 1;
+                if self.safety.state() == SafetyState::Trip {
+                    self.io.write_speed(0.0);
+                }
+            }
+            self.stats.safety_state = self.safety.state();
             self.stats.cycles_executed += 1;
 
             self.exchange.publish_state(ProcessSnapshot {
                 timestamp_us,
+                cycle_count: self.stats.cycles_executed,
                 motor_speed_rpm: current_speed,
                 motor_temp_c: current_temp,
                 pressure_bar: current_pressure,

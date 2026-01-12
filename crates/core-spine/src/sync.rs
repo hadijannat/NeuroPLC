@@ -4,6 +4,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 #[derive(Debug, Clone, Copy, Default)]
 pub struct ProcessSnapshot {
     pub timestamp_us: u64,
+    pub cycle_count: u64,
     pub motor_speed_rpm: f64,
     pub motor_temp_c: f64,
     pub pressure_bar: f64,

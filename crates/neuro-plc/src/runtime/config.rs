@@ -18,6 +18,7 @@ pub struct RuntimeConfig {
     pub auth_issuer: String,
     pub auth_audience: String,
     pub auth_scope: Option<String>,
+    pub bridge_require_handshake: bool,
     pub modbus_addr: Option<String>,
     #[cfg(feature = "opcua")]
     pub opcua_enabled: bool,
@@ -25,6 +26,12 @@ pub struct RuntimeConfig {
     pub opcua_endpoint: String,
     #[cfg(feature = "opcua")]
     pub opcua_secure_only: bool,
+    #[cfg(feature = "opcua")]
+    pub opcua_allow_anonymous: bool,
+    #[cfg(feature = "opcua")]
+    pub opcua_user: Option<String>,
+    #[cfg(feature = "opcua")]
+    pub opcua_password: Option<String>,
     #[cfg(feature = "rerun")]
     pub rerun_enabled: bool,
     #[cfg(feature = "rerun")]
@@ -50,6 +57,7 @@ impl Default for RuntimeConfig {
             auth_issuer: "neuroplc".to_string(),
             auth_audience: "neuroplc-spine".to_string(),
             auth_scope: None,
+            bridge_require_handshake: false,
             modbus_addr: None,
             #[cfg(feature = "opcua")]
             opcua_enabled: false,
@@ -57,6 +65,12 @@ impl Default for RuntimeConfig {
             opcua_endpoint: "opc.tcp://0.0.0.0:4840".to_string(),
             #[cfg(feature = "opcua")]
             opcua_secure_only: false,
+            #[cfg(feature = "opcua")]
+            opcua_allow_anonymous: true,
+            #[cfg(feature = "opcua")]
+            opcua_user: None,
+            #[cfg(feature = "opcua")]
+            opcua_password: None,
             #[cfg(feature = "rerun")]
             rerun_enabled: false,
             #[cfg(feature = "rerun")]
@@ -157,6 +171,9 @@ impl RuntimeConfig {
                         i += 1;
                     }
                 }
+                "--require-handshake" => {
+                    cfg.bridge_require_handshake = true;
+                }
                 "--modbus" => {
                     if i + 1 < args.len() {
                         cfg.modbus_addr = Some(args[i + 1].clone());
@@ -177,6 +194,28 @@ impl RuntimeConfig {
                 #[cfg(feature = "opcua")]
                 "--opcua-secure-only" => {
                     cfg.opcua_secure_only = true;
+                }
+                #[cfg(feature = "opcua")]
+                "--opcua-allow-anon" => {
+                    cfg.opcua_allow_anonymous = true;
+                }
+                #[cfg(feature = "opcua")]
+                "--opcua-no-anon" => {
+                    cfg.opcua_allow_anonymous = false;
+                }
+                #[cfg(feature = "opcua")]
+                "--opcua-user" => {
+                    if i + 1 < args.len() {
+                        cfg.opcua_user = Some(args[i + 1].clone());
+                        i += 1;
+                    }
+                }
+                #[cfg(feature = "opcua")]
+                "--opcua-password" => {
+                    if i + 1 < args.len() {
+                        cfg.opcua_password = Some(args[i + 1].clone());
+                        i += 1;
+                    }
                 }
                 #[cfg(feature = "rerun")]
                 "--rerun" => {
@@ -224,10 +263,15 @@ OPTIONS:
     --auth-issuer <STR>     Expected token issuer [default: neuroplc]
     --auth-audience <STR>   Expected token audience [default: neuroplc-spine]
     --auth-scope <STR>      Required scope for recommendations (optional)
+    --require-handshake     Require a protocol handshake before accepting recommendations
     --modbus <ADDR>         Connect to real hardware via Modbus TCP (e.g. 192.168.1.10:502)
     --opcua                 Enable OPC UA server (requires 'opcua' feature)
     --opcua-endpoint <URL>  OPC UA endpoint URL [default: opc.tcp://0.0.0.0:4840]
     --opcua-secure-only     Disable insecure OPC UA endpoints (no SecurityMode=None)
+    --opcua-allow-anon      Allow anonymous OPC UA user token (default)
+    --opcua-no-anon         Disable anonymous OPC UA user token
+    --opcua-user <USER>     OPC UA username for password auth
+    --opcua-password <PW>   OPC UA password for user auth
     --rerun                 Enable Rerun visualization (requires 'rerun' feature)
     --rerun-save <PATH>     Save Rerun recording to file
     -h, --help              Print this help message

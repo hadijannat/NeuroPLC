@@ -1,0 +1,24 @@
+services:
+  neuroplc:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    image: neuroplc:latest
+    container_name: neuroplc
+    ports:
+      - "7000:7000"
+      - "9090:9090"
+    environment:
+      - RUST_LOG=info
+    command:
+      - neuro-plc
+      - --json-logs
+      - --metrics-addr
+      - 0.0.0.0:9090
+      - --audit-log
+      - /var/log/neuroplc/audit.jsonl
+    volumes:
+      - ../logs:/var/log/neuroplc
+    read_only: true
+    tmpfs:
+      - /tmp

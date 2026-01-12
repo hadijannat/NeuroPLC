@@ -7,6 +7,15 @@ pub struct Unvalidated;
 pub struct Validated;
 
 #[derive(Debug, Clone, Copy)]
+pub struct BoundsChecked;
+
+#[derive(Debug, Clone, Copy)]
+pub struct RateChecked;
+
+#[derive(Debug, Clone, Copy)]
+pub struct InterlockCleared;
+
+#[derive(Debug, Clone, Copy)]
 pub struct Setpoint<State = Unvalidated> {
     value: f64,
     _state: PhantomData<State>,
@@ -55,12 +64,12 @@ impl Setpoint<Unvalidated> {
         }
     }
 
-    pub fn validate(
+    pub fn bounds_check(
         self,
         limits: &SafetyLimits,
         current_speed: f64,
         current_temp: f64,
-    ) -> Result<Setpoint<Validated>, SafetyViolation> {
+    ) -> Result<Setpoint<BoundsChecked>, SafetyViolation> {
         if !self.value.is_finite() {
             return Err(SafetyViolation::NonFiniteSetpoint {
                 requested: self.value,
@@ -86,6 +95,31 @@ impl Setpoint<Unvalidated> {
             });
         }
 
+        Ok(Setpoint {
+            value: self.value,
+            _state: PhantomData,
+        })
+    }
+
+    pub fn validate(
+        self,
+        limits: &SafetyLimits,
+        current_speed: f64,
+        current_temp: f64,
+    ) -> Result<Setpoint<Validated>, SafetyViolation> {
+        self.bounds_check(limits, current_speed, current_temp)?
+            .rate_check(limits, current_speed)?
+            .interlock_check(limits, current_temp)?
+            .finalize()
+    }
+}
+
+impl Setpoint<BoundsChecked> {
+    pub fn rate_check(
+        self,
+        limits: &SafetyLimits,
+        current_speed: f64,
+    ) -> Result<Setpoint<RateChecked>, SafetyViolation> {
         let delta = (self.value - current_speed).abs();
         if delta > limits.max_rate_of_change {
             return Err(SafetyViolation::RateOfChangeTooHigh {
@@ -94,6 +128,19 @@ impl Setpoint<Unvalidated> {
             });
         }
 
+        Ok(Setpoint {
+            value: self.value,
+            _state: PhantomData,
+        })
+    }
+}
+
+impl Setpoint<RateChecked> {
+    pub fn interlock_check(
+        self,
+        limits: &SafetyLimits,
+        current_temp: f64,
+    ) -> Result<Setpoint<InterlockCleared>, SafetyViolation> {
         if current_temp > limits.max_temp_c {
             return Err(SafetyViolation::TemperatureInterlock {
                 current_temp,
@@ -101,6 +148,15 @@ impl Setpoint<Unvalidated> {
             });
         }
 
+        Ok(Setpoint {
+            value: self.value,
+            _state: PhantomData,
+        })
+    }
+}
+
+impl Setpoint<InterlockCleared> {
+    pub fn finalize(self) -> Result<Setpoint<Validated>, SafetyViolation> {
         Ok(Setpoint {
             value: self.value,
             _state: PhantomData,
@@ -146,5 +202,23 @@ mod tests {
     fn accepts_valid_setpoint() {
         let res = Setpoint::new(100.0).validate(&limits(), 50.0, 25.0);
         assert!(res.is_ok());
+    }
+
+    #[test]
+    fn rejects_rate_limit() {
+        let res = Setpoint::new(500.0).validate(&limits(), 0.0, 25.0);
+        assert!(matches!(
+            res,
+            Err(SafetyViolation::RateOfChangeTooHigh { .. })
+        ));
+    }
+
+    #[test]
+    fn rejects_temp_interlock() {
+        let res = Setpoint::new(100.0).validate(&limits(), 50.0, 100.0);
+        assert!(matches!(
+            res,
+            Err(SafetyViolation::TemperatureInterlock { .. })
+        ));
     }
 }

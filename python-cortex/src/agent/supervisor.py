@@ -123,6 +123,7 @@ def run(host: str, port: int, attack_mode: bool, model_path: Optional[str] = Non
     auth_audience = os.getenv("NEUROPLC_AUTH_AUDIENCE", "neuroplc-spine")
     auth_scope = os.getenv("NEUROPLC_AUTH_SCOPE", "cortex:recommend")
     auth_max_age = int(os.getenv("NEUROPLC_AUTH_MAX_AGE", "300"))
+    send_hello = os.getenv("NEUROPLC_SEND_HELLO", "0") in ("1", "true", "yes")
 
     def _b64url(data: bytes) -> str:
         return base64.urlsafe_b64encode(data).rstrip(b"=").decode("ascii")
@@ -147,6 +148,15 @@ def run(host: str, port: int, attack_mode: bool, model_path: Optional[str] = Non
                 sock.settimeout(1.0)
                 file = sock.makefile("rwb")
                 print(f"Connected to spine at {host}:{port}")
+                if send_hello:
+                    hello = {
+                        "type": "hello",
+                        "protocol_version": {"major": 1, "minor": 0},
+                        "capabilities": ["recommendation.v1", "auth.hmac-sha256"],
+                        "client_id": "python-cortex",
+                    }
+                    file.write((json.dumps(hello) + "\n").encode("utf-8"))
+                    file.flush()
                 sequence = 0
                 while True:
                     line = file.readline()

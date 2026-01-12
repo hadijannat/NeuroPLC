@@ -13,6 +13,9 @@ pub struct OpcuaConfig {
     pub endpoint: String,
     pub update_interval: Duration,
     pub secure_only: bool,
+    pub allow_anonymous: bool,
+    pub username: Option<String>,
+    pub password: Option<String>,
 }
 
 impl Default for OpcuaConfig {
@@ -21,6 +24,9 @@ impl Default for OpcuaConfig {
             endpoint: "opc.tcp://0.0.0.0:4840".to_string(),
             update_interval: Duration::from_millis(200),
             secure_only: false,
+            allow_anonymous: true,
+            username: None,
+            password: None,
         }
     }
 }
@@ -33,8 +39,25 @@ pub fn run_opcua(
 ) -> thread::JoinHandle<()> {
     let (host, port) = parse_endpoint(&config.endpoint);
 
-    let anon_tokens = vec![ANONYMOUS_USER_TOKEN_ID.to_string()];
-    let secure_tokens = vec![ANONYMOUS_USER_TOKEN_ID.to_string(), "admin".to_string()];
+    let mut anon_tokens = Vec::new();
+    if config.allow_anonymous {
+        anon_tokens.push(ANONYMOUS_USER_TOKEN_ID.to_string());
+    }
+
+    let mut secure_tokens = Vec::new();
+    if config.allow_anonymous {
+        secure_tokens.push(ANONYMOUS_USER_TOKEN_ID.to_string());
+    }
+
+    if let (Some(user), Some(_pass)) = (config.username.as_ref(), config.password.as_ref()) {
+        secure_tokens.push(user.clone());
+    }
+
+    if secure_tokens.is_empty() && anon_tokens.is_empty() {
+        warn!("OPC UA configured without any user tokens; enabling anonymous access");
+        anon_tokens.push(ANONYMOUS_USER_TOKEN_ID.to_string());
+        secure_tokens.push(ANONYMOUS_USER_TOKEN_ID.to_string());
+    }
 
     let endpoints = if config.secure_only {
         vec![(
@@ -51,7 +74,12 @@ pub fn run_opcua(
         ]
     };
 
-    let server_config = ServerBuilder::new()
+    let mut builder = ServerBuilder::new();
+    if let (Some(user), Some(pass)) = (config.username.as_ref(), config.password.as_ref()) {
+        builder = builder.user_token(user, ServerUserToken::user_pass(user, pass));
+    }
+
+    let server_config = builder
         .application_name("NeuroPLC OPC UA")
         .application_uri("urn:neuroplc:opcua")
         .product_uri("urn:neuroplc:opcua")
@@ -63,10 +91,6 @@ pub fn run_opcua(
         .max_byte_string_length(4 * 1024 * 1024)
         .max_message_size(4 * 1024 * 1024)
         .max_chunk_count(128)
-        .user_token(
-            "admin",
-            ServerUserToken::user_pass("admin", "neuroplc-secret"),
-        )
         .endpoints(endpoints)
         .discovery_urls(vec!["/".to_string()])
         .config();

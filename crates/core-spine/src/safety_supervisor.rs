@@ -13,6 +13,7 @@ pub struct SafetySupervisor {
     state: SafetyState,
     last_safe_setpoint: f64,
     limits: SafetyLimits,
+    timing_violation_count: u32,
 }
 
 impl SafetySupervisor {
@@ -21,6 +22,7 @@ impl SafetySupervisor {
             state: SafetyState::Normal,
             last_safe_setpoint: 0.0,
             limits,
+            timing_violation_count: 0,
         }
     }
 
@@ -56,6 +58,7 @@ impl SafetySupervisor {
                 let speed = safe_setpoint.value();
                 self.last_safe_setpoint = speed;
                 self.state = SafetyState::Normal;
+                self.timing_violation_count = 0;
                 (speed, None)
             }
             Err(violation) => {
@@ -64,5 +67,26 @@ impl SafetySupervisor {
                 (0.0, Some(violation))
             }
         }
+    }
+
+    pub fn note_timing_jitter(
+        &mut self,
+        jitter_us: u64,
+        max_jitter_us: u64,
+        trip_after: u32,
+    ) -> bool {
+        if jitter_us <= max_jitter_us {
+            self.timing_violation_count = 0;
+            return false;
+        }
+
+        self.timing_violation_count = self.timing_violation_count.saturating_add(1);
+        if self.timing_violation_count >= trip_after.max(1) {
+            self.state = SafetyState::Trip;
+            self.last_safe_setpoint = 0.0;
+        } else {
+            self.state = SafetyState::Degraded;
+        }
+        true
     }
 }

@@ -5,6 +5,15 @@
 ### 1.1 Scope
 This document covers the safety-related aspects of the NeuroPLC industrial controller system, specifically the safety firewall implemented in the Rust "spine" component.
 
+### 1.2 Safety Lifecycle Alignment (IEC 61508)
+NeuroPLC follows a reduced IEC 61508 V-model lifecycle with the following artifacts mapped in-repo:
+
+- Concept + HARA: **Section 2**
+- Safety requirements: **Section 3**
+- Architectural controls: **Section 3.2**
+- Verification & validation: **Section 4**
+- Evidence + auditability: **Section 5**
+
 ### 1.2 Safety Functions
 
 | SF-ID | Function Name | Description | SIL Target |
@@ -27,6 +36,14 @@ This document covers the safety-related aspects of the NeuroPLC industrial contr
 | Environment | More (temp) | Cooling failure | Motor damage | SF-03 |
 | Timing | Late | CPU overload | Control instability | SF-05 |
 
+### 2.2 FMEA Summary (minimal)
+
+| Failure Mode | Effect | Detection | Mitigation |
+|--------------|--------|-----------|------------|
+| Bridge timeout | Stale recommendations | Timeout age check | SF-05 + degraded mode |
+| Jitter spikes | Control instability | Jitter threshold monitoring | Trip after repeated violation |
+| Sensor non-finite | Undefined control | Sensor sanity checks | SF-04 |
+
 ## 3. Safety Requirements
 
 ### 3.1 Functional Requirements
@@ -47,6 +64,7 @@ This document covers the safety-related aspects of the NeuroPLC industrial contr
 | AR-02 | Safety validation SHALL use type-state pattern | `Setpoint<Validated>` |
 | AR-03 | Control loop SHALL not allocate heap memory | Triple buffer preallocation |
 | AR-04 | AI recommendations SHALL be untrusted inputs | Explicit validation boundary |
+| AR-05 | Timing jitter SHALL be monitored and trigger degradation/trip | `SafetySupervisor::note_timing_jitter` |
 
 ## 4. Verification & Validation
 
@@ -64,6 +82,12 @@ This document covers the safety-related aspects of the NeuroPLC industrial contr
 - Clippy: All warnings as errors (`-D warnings`)
 - Miri: Memory safety verification (TODO)
 - Kani: Formal verification of safety properties (TODO)
+
+### 4.3 Evidence Traceability
+
+- Safety tests: `crates/core-spine/src/safety.rs`, `crates/core-spine/src/safety_proptest.rs`
+- Runtime safety boundary: `crates/core-spine/src/safety_supervisor.rs`
+- Audit trail (hash chain): `crates/neuro-plc/src/infra/audit.rs`
 
 ## 5. Lifecycle Data
 
