@@ -56,6 +56,11 @@ Headless capture:
 cargo run --release --features rerun -- --rerun-save neuroplc.rrd
 ```
 
+## Docker and deployment
+
+- Docker assets live in `docker/` (image build + digital twin compose). See `docker/README.md`.
+- Kubernetes/Argo CD manifests live in `deploy/`. See `deploy/README.md`.
+
 ## Notes
 
 - The iron thread uses a preallocated triple buffer (no heap allocations in the control loop).
