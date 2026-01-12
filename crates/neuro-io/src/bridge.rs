@@ -133,6 +133,8 @@ pub fn run_bridge(
 
     let mut client: Option<BridgeStream> = None;
     let mut recv_buf: Vec<u8> = Vec::with_capacity(4096);
+    let mut send_buf: Vec<u8> = Vec::new();
+    let mut send_offset: usize = 0;
     let mut last_publish = Instant::now();
     let mut state_sequence: u64 = 0;
     let mut inbound_state = InboundState::new();
@@ -212,7 +214,7 @@ pub fn run_bridge(
             }
 
             // Publish state
-            if last_publish.elapsed() >= config.publish_interval {
+            if send_buf.is_empty() && last_publish.elapsed() >= config.publish_interval {
                 state_sequence = state_sequence.wrapping_add(1);
                 let snapshot = exchange.read_state();
                 let msg = StateMsg {
@@ -227,23 +229,42 @@ pub fn run_bridge(
                     cycle_jitter_us: snapshot.cycle_jitter_us,
                 };
                 if let Ok(line) = serde_json::to_string(&msg) {
-                    if let Err(err) = stream.write_all(line.as_bytes()) {
-                        warn!(error = %err, "Bridge write error");
+                    send_buf = line.into_bytes();
+                    send_buf.push(b'\n');
+                    send_offset = 0;
+                }
+                last_publish = Instant::now();
+            }
+
+            if !send_buf.is_empty() {
+                match stream.write(&send_buf[send_offset..]) {
+                    Ok(0) => {
+                        info!("Bridge client disconnected");
                         drop_client = true;
                         BRIDGE_CONNECTED.set(0.0);
-                    } else if let Err(err) = stream.write_all(b"\n") {
+                    }
+                    Ok(n) => {
+                        send_offset += n;
+                        if send_offset >= send_buf.len() {
+                            send_buf.clear();
+                            send_offset = 0;
+                        }
+                    }
+                    Err(err) if err.kind() == std::io::ErrorKind::WouldBlock => {}
+                    Err(err) => {
                         warn!(error = %err, "Bridge write error");
                         drop_client = true;
                         BRIDGE_CONNECTED.set(0.0);
                     }
                 }
-                last_publish = Instant::now();
             }
         }
 
         if drop_client {
             client = None;
             recv_buf.clear();
+            send_buf.clear();
+            send_offset = 0;
             inbound_state.reset();
         }
 
