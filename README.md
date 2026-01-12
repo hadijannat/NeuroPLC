@@ -183,6 +183,9 @@ Environment knobs:
 - `NEUROPLC_LLM_COOLDOWN_S` (default `30`)
 - `NEUROPLC_LLM_DECISION_PERIOD_MS` (default `500`)
 - `NEUROPLC_LLM_MAX_STEPS` (default `4`)
+- `NEUROPLC_LLM_PROVIDER` (`openai` or `mock`)
+- `NEUROPLC_CORTEX_AUDIT_PATH` (append JSONL audit entries)
+- `NEUROPLC_LLM_ENABLE_CRITIC` (enable optional LLM critic pass)
 
 ---
 

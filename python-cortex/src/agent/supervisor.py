@@ -164,6 +164,7 @@ def run(host: str, port: int, attack_mode: bool, model_path: Optional[str] = Non
     send_hello = os.getenv("NEUROPLC_SEND_HELLO", "0") in ("1", "true", "yes")
     inference_engine = os.getenv("NEUROPLC_INFERENCE_ENGINE", "baseline").lower()
     decision_period_ms = int(os.getenv("NEUROPLC_LLM_DECISION_PERIOD_MS", "500"))
+    audit_path = os.getenv("NEUROPLC_CORTEX_AUDIT_PATH")
     constraints = Constraints(
         min_speed_rpm=float(os.getenv("NEUROPLC_MIN_SPEED_RPM", "0")),
         max_speed_rpm=float(os.getenv("NEUROPLC_MAX_SPEED_RPM", "3000")),
@@ -230,8 +231,11 @@ def run(host: str, port: int, attack_mode: bool, model_path: Optional[str] = Non
                         except OSError as exc:
                             print(f"BaSyx init failed: {exc}")
 
-                    now_us = int(time.time() * 1_000_000)
-                    is_stale = (now_us - obs.timestamp_us) > constraints.staleness_us
+                    now_unix_us = int(time.time() * 1_000_000)
+                    if obs.unix_us:
+                        is_stale = (now_unix_us - int(obs.unix_us)) > constraints.staleness_us
+                    else:
+                        is_stale = False
                     trace_id = uuid.uuid4().hex
 
                     obs_hash = hash_envelope({"observation": obs.model_dump()})
@@ -269,6 +273,8 @@ def run(host: str, port: int, attack_mode: bool, model_path: Optional[str] = Non
                             envelope["llm_latency_ms"] = last_llm_meta.latency_ms
                             envelope["llm_output_hash"] = last_llm_meta.llm_output_hash
                             envelope["tool_traces"] = last_llm_meta.tool_traces
+                            if last_llm_meta.critic is not None:
+                                envelope["critic"] = last_llm_meta.critic
 
                     if is_stale:
                         candidate = RecommendationCandidate(
@@ -293,6 +299,33 @@ def run(host: str, port: int, attack_mode: bool, model_path: Optional[str] = Non
                     envelope["violations"] = rec.violations
                     envelope["warnings"] = rec.warnings
                     reasoning_hash = hash_envelope(envelope)
+                    if audit_path:
+                        audit_entry = {
+                            "trace_id": trace_id,
+                            "engine": envelope.get("engine", "baseline"),
+                            "model": envelope.get("model"),
+                            "llm_output_hash": envelope.get("llm_output_hash"),
+                            "tool_traces": envelope.get("tool_traces", []),
+                            "critic": envelope.get("critic"),
+                            "observation_hash": obs_hash,
+                            "constraints_hash": constraints_hash,
+                            "approved": rec.approved,
+                            "violations": rec.violations,
+                            "warnings": rec.warnings,
+                            "reasoning_hash": reasoning_hash,
+                        }
+                        try:
+                            with open(audit_path, "a", encoding="utf-8") as audit_file:
+                                audit_file.write(
+                                    json.dumps(
+                                        audit_entry,
+                                        separators=(",", ":"),
+                                        ensure_ascii=True,
+                                    )
+                                    + "\n"
+                                )
+                        except OSError:
+                            pass
 
                     sequence += 1
                     issued_at_unix_us = int(time.time() * 1_000_000)

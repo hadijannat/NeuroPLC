@@ -29,6 +29,7 @@ class LLMOutcome:
     llm_output_hash: str
     latency_ms: int
     model: str
+    critic: Optional[dict] = None
 
 
 class LLMEngine:
@@ -97,7 +98,7 @@ def try_llm_recommendation(
     now = time.time()
 
     if _FAILURES >= threshold and (now - _LAST_FAILURE_AT) < cooldown_s:
-    return None
+        return None
 
 
 class LLMAgentEngine:
@@ -110,10 +111,41 @@ class LLMAgentEngine:
         self.timeout_s = timeout_s
         self.max_steps = max(1, max_steps)
         self.model = os.getenv("NEUROPLC_LLM_MODEL", "gpt-4o-mini")
+        self.provider = os.getenv("NEUROPLC_LLM_PROVIDER", "openai").lower()
+        self.enable_critic = os.getenv("NEUROPLC_LLM_ENABLE_CRITIC", "0") in (
+            "1",
+            "true",
+            "yes",
+        )
 
     def recommend(
         self, obs: StateObservation, constraints: Constraints, last: Optional[RecommendationCandidate]
     ) -> LLMOutcome:
+        if self.provider == "mock":
+            candidate = RecommendationCandidate(
+                action="adjust_setpoint",
+                target_speed_rpm=min(
+                    max(obs.motor_speed_rpm + 25.0, constraints.min_speed_rpm),
+                    constraints.max_speed_rpm,
+                ),
+                confidence=0.6,
+                reasoning="mock-agent: gentle ramp",
+            )
+            tool_traces = [
+                hash_tool_call("get_state_summary", {}, {"motor_speed_rpm": obs.motor_speed_rpm}),
+                hash_tool_call("get_constraints", {}, constraints.model_dump()),
+            ]
+            payload = candidate.model_dump()
+            critic = {"approve": True, "reason": "mock-critic"} if self.enable_critic else None
+            return LLMOutcome(
+                candidate=candidate,
+                tool_traces=tool_traces,
+                llm_output_hash=hash_envelope(payload),
+                latency_ms=1,
+                model="mock-agent",
+                critic=critic,
+            )
+
         api_key = os.getenv("OPENAI_API_KEY")
         if not api_key:
             raise LLMEngineError("OPENAI_API_KEY not set")
@@ -210,6 +242,12 @@ class LLMAgentEngine:
             except ValidationError as exc:
                 raise LLMEngineError(f"Schema validation failed: {exc}") from exc
 
+            critic = None
+            if self.enable_critic:
+                critic = self._run_critic(client, obs, constraints, candidate)
+                if not critic.get("approve", False):
+                    raise LLMEngineError("LLM critic rejected candidate")
+
             latency_ms = int((time.time() - start) * 1000)
             return LLMOutcome(
                 candidate=candidate,
@@ -217,9 +255,50 @@ class LLMAgentEngine:
                 llm_output_hash=hash_envelope(payload),
                 latency_ms=latency_ms,
                 model=self.model,
+                critic=critic,
             )
 
         raise LLMEngineError("LLM agent exceeded max steps")
+
+    def _run_critic(
+        self,
+        client: "OpenAI",
+        obs: StateObservation,
+        constraints: Constraints,
+        candidate: RecommendationCandidate,
+    ) -> dict:
+        system = (
+            "You are a strict safety critic. "
+            "Approve only if candidate respects constraints and sensor state. "
+            "Return JSON: {\"approve\": bool, \"reason\": string}."
+        )
+        payload = {
+            "candidate": candidate.model_dump(),
+            "constraints": constraints.model_dump(),
+            "state": {
+                "motor_speed_rpm": obs.motor_speed_rpm,
+                "motor_temp_c": obs.motor_temp_c,
+                "pressure_bar": obs.pressure_bar,
+                "safety_state": obs.safety_state,
+            },
+        }
+        response = client.chat.completions.create(
+            model=self.model,
+            messages=[
+                {"role": "system", "content": system},
+                {"role": "user", "content": json.dumps(payload)},
+            ],
+            temperature=0.0,
+            timeout=self.timeout_s,
+        )
+        content = response.choices[0].message.content or "{}"
+        try:
+            critic = json.loads(content)
+        except json.JSONDecodeError as exc:
+            raise LLMEngineError(f"Critic JSON invalid: {exc}") from exc
+        if "approve" not in critic:
+            raise LLMEngineError("Critic response missing approve")
+        return critic
 
 
 def try_llm_agent_recommendation(
