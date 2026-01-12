@@ -115,15 +115,19 @@ pub fn run_opcua(
             .add_folder("NeuroPLC", "NeuroPLC", &objects)
             .unwrap_or_else(|_| NodeId::objects_folder_id());
 
-        let access_level = if config.allow_write {
-            AccessLevel::CURRENT_READ | AccessLevel::CURRENT_WRITE
-        } else {
-            AccessLevel::CURRENT_READ
+        let access_level = || {
+            if config.allow_write {
+                AccessLevel::CURRENT_READ | AccessLevel::CURRENT_WRITE
+            } else {
+                AccessLevel::CURRENT_READ
+            }
         };
-        let user_access_level = if config.allow_write {
-            UserAccessLevel::CURRENT_READ | UserAccessLevel::CURRENT_WRITE
-        } else {
-            UserAccessLevel::CURRENT_READ
+        let user_access_level = || {
+            if config.allow_write {
+                UserAccessLevel::CURRENT_READ | UserAccessLevel::CURRENT_WRITE
+            } else {
+                UserAccessLevel::CURRENT_READ
+            }
         };
 
         let speed_id = NodeId::new(ns, tags::MOTOR_SPEED_RPM.opcua_node);
@@ -143,8 +147,8 @@ pub fn run_opcua(
             )
             .data_type(DataTypeId::Double)
             .value(0.0)
-            .access_level(access_level)
-            .user_access_level(user_access_level)
+            .access_level(access_level())
+            .user_access_level(user_access_level())
             .build(),
             VariableBuilder::new(
                 &temp_id,
@@ -153,8 +157,8 @@ pub fn run_opcua(
             )
             .data_type(DataTypeId::Double)
             .value(0.0)
-            .access_level(access_level)
-            .user_access_level(user_access_level)
+            .access_level(access_level())
+            .user_access_level(user_access_level())
             .build(),
             VariableBuilder::new(
                 &pressure_id,
@@ -163,8 +167,8 @@ pub fn run_opcua(
             )
             .data_type(DataTypeId::Double)
             .value(0.0)
-            .access_level(access_level)
-            .user_access_level(user_access_level)
+            .access_level(access_level())
+            .user_access_level(user_access_level())
             .build(),
             VariableBuilder::new(
                 &jitter_id,
@@ -173,8 +177,8 @@ pub fn run_opcua(
             )
             .data_type(DataTypeId::UInt32)
             .value(0u32)
-            .access_level(access_level)
-            .user_access_level(user_access_level)
+            .access_level(access_level())
+            .user_access_level(user_access_level())
             .build(),
             VariableBuilder::new(
                 &timestamp_id,
@@ -183,8 +187,8 @@ pub fn run_opcua(
             )
             .data_type(DataTypeId::UInt64)
             .value(0u64)
-            .access_level(access_level)
-            .user_access_level(user_access_level)
+            .access_level(access_level())
+            .user_access_level(user_access_level())
             .build(),
             VariableBuilder::new(
                 &safety_state_id,
@@ -193,8 +197,8 @@ pub fn run_opcua(
             )
             .data_type(DataTypeId::UInt32)
             .value(0u32)
-            .access_level(access_level)
-            .user_access_level(user_access_level)
+            .access_level(access_level())
+            .user_access_level(user_access_level())
             .build(),
             VariableBuilder::new(
                 &agent_target_id,
@@ -203,8 +207,8 @@ pub fn run_opcua(
             )
             .data_type(DataTypeId::Double)
             .value(0.0)
-            .access_level(access_level)
-            .user_access_level(user_access_level)
+            .access_level(access_level())
+            .user_access_level(user_access_level())
             .build(),
             VariableBuilder::new(
                 &agent_conf_id,
@@ -213,8 +217,8 @@ pub fn run_opcua(
             )
             .data_type(DataTypeId::Double)
             .value(0.0)
-            .access_level(access_level)
-            .user_access_level(user_access_level)
+            .access_level(access_level())
+            .user_access_level(user_access_level())
             .build(),
         ];
 
