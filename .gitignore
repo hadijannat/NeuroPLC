@@ -5,6 +5,7 @@
 pki/
 pki-server/
 *.rrd
+logs/
 AGENTS.md
 CLAUDE.md
 .claude/
