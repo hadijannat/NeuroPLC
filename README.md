@@ -24,7 +24,7 @@ If you want to run the spine without opening any TCP ports, add `--no-bridge`.
 ## Digital twin (BaSyx)
 
 ```bash
-docker compose -f docker/docker-compose.digitaltwin.yml up -d
+docker compose -f docker/compose.digitaltwin.yml up -d
 export BASYX_URL=http://localhost:8081
 python3 python-cortex/run_supervisor.py
 ```

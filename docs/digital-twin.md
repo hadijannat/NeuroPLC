@@ -3,7 +3,7 @@
 ## Start the stack
 
 ```bash
-docker compose -f docker/docker-compose.digitaltwin.yml up -d
+docker compose -f docker/compose.digitaltwin.yml up -d
 ```
 
 BaSyx AAS Environment: http://localhost:8081
