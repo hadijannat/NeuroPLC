@@ -3,6 +3,7 @@
 *.pyc
 .venv/
 pki/
+pki-server/
 *.rrd
 AGENTS.md
 CLAUDE.md

@@ -40,6 +40,9 @@ cargo run --release --features opcua -- --opcua
 
 Default endpoint: `opc.tcp://localhost:4840`
 
+The OPC UA server stores local PKI material under `pki-server/` and will create it on first run.
+Keep that directory local (it is ignored by git) and do not commit private keys.
+
 ## Rerun visualization (optional)
 
 ```bash
