@@ -31,30 +31,9 @@ NeuroPLC is a **hybrid industrial controller** that combines the flexibility of 
 - 📊 **Every decision is auditable** with cryptographic hashes
 - 🏭 **Industrial protocols** (OPC UA, Modbus, AAS) are required
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                        PYTHON CORTEX (AI)                        │
-│   ┌─────────────┐    ┌──────────────┐    ┌─────────────────┐    │
-│   │  ML Model   │───▶│  Supervisor  │───▶│  BaSyx Digital  │    │
-│   │  (ONNX)     │    │              │    │      Twin       │    │
-│   └─────────────┘    └──────┬───────┘    └─────────────────┘    │
-└─────────────────────────────┼───────────────────────────────────┘
-                              │ TCP/JSON
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                      RUST SPINE (Real-Time)                      │
-│   ┌─────────────┐    ┌──────────────┐    ┌─────────────────┐    │
-│   │   Bridge    │───▶│ Safety       │───▶│  IronThread     │    │
-│   │  (TLS/Auth) │    │ Firewall     │    │  (1kHz Loop)    │    │
-│   └─────────────┘    └──────────────┘    └────────┬────────┘    │
-│                              ║                     │             │
-│                    VALIDATED ONLY                  ▼             │
-│                              ║         ┌─────────────────┐       │
-│                              ╚═════════│   MachineIO     │       │
-│                                        │ (Sim/Modbus)    │       │
-│                                        └─────────────────┘       │
-└─────────────────────────────────────────────────────────────────┘
-```
+<p align="center">
+  <img src="docs/assets/architecture.png" alt="NeuroPLC Architecture" width="700">
+</p>
 
 ---
 
