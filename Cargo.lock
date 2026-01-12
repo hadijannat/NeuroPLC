@@ -3187,29 +3187,39 @@ dependencies = [
 ]
 
 [[package]]
-name = "neuro-plc"
+name = "neuro-io"
 version = "0.1.0"
 dependencies = [
  "base64 0.22.1",
  "core-spine",
  "futures",
  "hmac",
- "opcua",
  "prometheus",
  "rcgen",
- "rerun",
  "rustls",
  "rustls-pemfile",
  "serde",
  "serde_json",
  "sha2",
- "tempfile",
  "thiserror 1.0.69",
  "tiny_http",
  "tokio",
  "tokio-modbus",
  "tracing",
- "tracing-appender",
+]
+
+[[package]]
+name = "neuro-plc"
+version = "0.1.0"
+dependencies = [
+ "core-spine",
+ "neuro-io",
+ "opcua",
+ "rerun",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "tracing",
  "tracing-subscriber",
 ]
 
@@ -6638,18 +6648,6 @@ dependencies = [
  "pin-project-lite",
  "tracing-attributes",
  "tracing-core",
-]
-
-[[package]]
-name = "tracing-appender"
-version = "0.2.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "786d480bce6247ab75f005b14ae1624ad978d3029d9113f0a22fa1ac773faeaf"
-dependencies = [
- "crossbeam-channel",
- "thiserror 2.0.17",
- "time",
- "tracing-subscriber",
 ]
 
 [[package]]

@@ -2,6 +2,7 @@
 resolver = "2"
 members = [
     "crates/core-spine",
+    "crates/neuro-io",
     "crates/neuro-plc",
 ]
 default-members = ["crates/neuro-plc"]
@@ -38,4 +39,3 @@ base64 = "0.22"
 tokio = { version = "1.36", features = ["full"] }
 tokio-modbus = "0.9"
 futures = "0.3"
-
