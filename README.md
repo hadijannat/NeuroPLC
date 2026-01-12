@@ -62,3 +62,10 @@ cargo run --release --features rerun -- --rerun-save neuroplc.rrd
 - Monotonic timestamps are based on a shared `TimeBase` to avoid staleness errors.
 - Safety validation explicitly rejects non-finite values.
 - Python audit hashes are stable SHA-256 over a canonical JSON envelope.
+
+## Repository layout
+
+- `crates/core-spine`: real-time control loop, safety, and HAL abstractions.
+- `crates/neuro-io`: bridge I/O, Modbus HAL, auth/TLS, and metrics wiring.
+- `crates/neuro-plc`: runtime orchestration + integrations (OPC UA, Rerun).
+- `python-cortex`: Python supervisor/cortex.
