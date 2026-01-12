@@ -7,10 +7,15 @@ import time
 import hashlib
 import hmac
 import secrets
+import uuid
 from typing import Optional
 
 from digital_twin import BasyxAdapter, BasyxConfig
 from pathlib import Path
+from agent.schemas import Constraints, RecommendationCandidate, StateObservation
+from agent.safety_validator import materialize_recommendation
+from agent.audit import hash_envelope
+from agent.llm_engine import try_llm_recommendation
 try:
     from agent.ml_inference import MLRecommendationEngine, SafetyBoundedRecommender
 except ImportError:
@@ -19,14 +24,14 @@ except ImportError:
     SafetyBoundedRecommender = None
 
 def compute_recommendation(
-    state: dict, 
+    obs: StateObservation, 
     attack_mode: bool, 
     cycle: int,
     recommender: Optional[object] = None
-) -> tuple[Optional[float], float, str, dict]:
-    speed = float(state.get("motor_speed_rpm", 0.0))
-    temp = float(state.get("motor_temp_c", 0.0))
-    pressure = float(state.get("pressure_bar", 0.0))
+) -> tuple[RecommendationCandidate, dict]:
+    speed = float(obs.motor_speed_rpm)
+    temp = float(obs.motor_temp_c)
+    pressure = float(obs.pressure_bar)
     
     # Track history (mock for now, in prod use a sliding window buffer)
     speed_hist = [speed] 
@@ -34,21 +39,27 @@ def compute_recommendation(
 
     warmup_cycles = int(os.getenv("NEUROPLC_WARMUP_CYCLES", "5"))
     if cycle <= warmup_cycles:
-        target = speed
-        confidence = 1.0
-        analysis = "warmup: hold speed"
+        candidate = RecommendationCandidate(
+            action="hold",
+            target_speed_rpm=speed,
+            confidence=1.0,
+            reasoning="warmup: hold speed",
+        )
         envelope = {
-            "analysis": analysis,
-            "target_speed_rpm": target,
+            "analysis": candidate.reasoning,
+            "target_speed_rpm": candidate.target_speed_rpm,
             "model": "warmup-v1",
         }
     elif attack_mode and cycle % 10 == 0:
-        target = 5000.0
-        confidence = 0.2
-        analysis = "attack_mode: requesting unsafe speed to test firewall"
+        candidate = RecommendationCandidate(
+            action="adjust_setpoint",
+            target_speed_rpm=5000.0,
+            confidence=0.2,
+            reasoning="attack_mode: requesting unsafe speed to test firewall",
+        )
         envelope = {
-            "analysis": analysis,
-            "target_speed_rpm": target,
+            "analysis": candidate.reasoning,
+            "target_speed_rpm": candidate.target_speed_rpm,
             "model": "attack-v1",
         }
     elif recommender:
@@ -59,6 +70,12 @@ def compute_recommendation(
         analysis = f"ML-based recommendation (conf={confidence:.2f})"
         envelope["analysis"] = analysis
         envelope["model"] = "onnx-v1"
+        candidate = RecommendationCandidate(
+            action="adjust_setpoint",
+            target_speed_rpm=float(target),
+            confidence=float(confidence),
+            reasoning=analysis,
+        )
     else:
         # Rule-based fallback
         if temp > 70.0:
@@ -79,31 +96,32 @@ def compute_recommendation(
             "target_speed_rpm": target,
             "model": "rule-v1",
         }
+        candidate = RecommendationCandidate(
+            action="adjust_setpoint",
+            target_speed_rpm=float(target),
+            confidence=float(confidence),
+            reasoning=analysis,
+        )
 
     max_rate = float(os.getenv("NEUROPLC_MAX_RATE_RPM", "50"))
     rate_limit_enabled = os.getenv("NEUROPLC_DISABLE_RATE_LIMIT", "0") not in ("1", "true", "yes")
-    if rate_limit_enabled and target is not None:
-        delta = target - speed
+    if rate_limit_enabled:
+        delta = candidate.target_speed_rpm - speed
         if abs(delta) > max_rate:
-            target = speed + (max_rate if delta > 0 else -max_rate)
-            analysis = f"{analysis}; rate_limited"
-            envelope["target_speed_rpm"] = target
-            envelope["analysis"] = analysis
+            candidate.target_speed_rpm = speed + (max_rate if delta > 0 else -max_rate)
+            candidate.reasoning = f"{candidate.reasoning}; rate_limited"
+            envelope["target_speed_rpm"] = candidate.target_speed_rpm
+            envelope["analysis"] = candidate.reasoning
 
     # Common envelope fields
     envelope["state"] = {
         "motor_speed_rpm": speed,
         "motor_temp_c": temp,
         "pressure_bar": pressure,
-        "timestamp_us": int(state.get("timestamp_us", 0)),
+        "timestamp_us": int(obs.timestamp_us),
     }
     
-    return target, confidence, analysis, envelope
-
-
-def hash_envelope(envelope: dict) -> str:
-    encoded = json.dumps(envelope, sort_keys=True, separators=(",", ":")).encode("utf-8")
-    return hashlib.sha256(encoded).hexdigest()
+    return candidate, envelope
 
 
 def run(host: str, port: int, attack_mode: bool, model_path: Optional[str] = None):
@@ -144,6 +162,14 @@ def run(host: str, port: int, attack_mode: bool, model_path: Optional[str] = Non
     auth_scope = os.getenv("NEUROPLC_AUTH_SCOPE", "cortex:recommend")
     auth_max_age = int(os.getenv("NEUROPLC_AUTH_MAX_AGE", "300"))
     send_hello = os.getenv("NEUROPLC_SEND_HELLO", "0") in ("1", "true", "yes")
+    inference_engine = os.getenv("NEUROPLC_INFERENCE_ENGINE", "baseline").lower()
+    constraints = Constraints(
+        min_speed_rpm=float(os.getenv("NEUROPLC_MIN_SPEED_RPM", "0")),
+        max_speed_rpm=float(os.getenv("NEUROPLC_MAX_SPEED_RPM", "3000")),
+        max_rate_rpm=float(os.getenv("NEUROPLC_MAX_RATE_RPM", "50")),
+        max_temp_c=float(os.getenv("NEUROPLC_MAX_TEMP_C", "80")),
+        staleness_us=int(os.getenv("NEUROPLC_STATE_STALE_US", "500000")),
+    )
 
     def _b64url(data: bytes) -> str:
         return base64.urlsafe_b64encode(data).rstrip(b"=").decode("ascii")
@@ -190,6 +216,7 @@ def run(host: str, port: int, attack_mode: bool, model_path: Optional[str] = Non
                         continue
 
                     cycle += 1
+                    obs = StateObservation.model_validate(state)
                     if basyx_adapter and not basyx_ready:
                         try:
                             basyx_adapter.ensure_models()
@@ -198,9 +225,45 @@ def run(host: str, port: int, attack_mode: bool, model_path: Optional[str] = Non
                         except OSError as exc:
                             print(f"BaSyx init failed: {exc}")
 
-                    target, confidence, analysis, envelope = compute_recommendation(
-                        state, attack_mode, cycle, recommender
-                    )
+                    now_us = int(time.time() * 1_000_000)
+                    is_stale = (now_us - obs.timestamp_us) > constraints.staleness_us
+                    trace_id = uuid.uuid4().hex
+
+                    obs_hash = hash_envelope({"observation": obs.model_dump()})
+                    constraints_hash = hash_envelope({"constraints": constraints.model_dump()})
+
+                    candidate = None
+                    if inference_engine == "llm" and not is_stale:
+                        candidate = try_llm_recommendation(obs, constraints)
+
+                    if candidate is None:
+                        candidate, envelope = compute_recommendation(
+                            obs, attack_mode, cycle, recommender
+                        )
+                        envelope["engine"] = "baseline"
+                    else:
+                        envelope = {
+                            "analysis": candidate.reasoning,
+                            "target_speed_rpm": candidate.target_speed_rpm,
+                            "model": "llm",
+                        }
+
+                    if is_stale:
+                        candidate = RecommendationCandidate(
+                            action="fallback",
+                            target_speed_rpm=obs.motor_speed_rpm,
+                            confidence=0.0,
+                            reasoning="stale observation",
+                        )
+
+                    rec = materialize_recommendation(candidate, obs, constraints, trace_id)
+                    envelope["observation_hash"] = obs_hash
+                    envelope["constraints_hash"] = constraints_hash
+                    envelope["candidate"] = candidate.model_dump()
+                    envelope["trace_id"] = trace_id
+                    envelope["approved"] = rec.approved
+                    envelope["violations"] = rec.violations
+                    envelope["warnings"] = rec.warnings
                     reasoning_hash = hash_envelope(envelope)
 
                     sequence += 1
@@ -211,8 +274,8 @@ def run(host: str, port: int, attack_mode: bool, model_path: Optional[str] = Non
                         "sequence": sequence,
                         "issued_at_unix_us": issued_at_unix_us,
                         "ttl_ms": 1000,
-                        "target_speed_rpm": target,
-                        "confidence": confidence,
+                        "target_speed_rpm": rec.target_speed_rpm if rec.approved else None,
+                        "confidence": rec.confidence if rec.approved else 0.0,
                         "reasoning_hash": reasoning_hash,
                         "client_unix_us": issued_at_unix_us,
                     }

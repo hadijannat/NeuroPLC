@@ -157,6 +157,23 @@ python run_supervisor.py --model models/neuro_v1.onnx
 - Safety-bounded recommender wrapper
 - Full audit trail with model hash
 
+### 🤖 Agentic LLM Supervisor (Advisory)
+
+Enable the LLM inference engine in the Python cortex (advisory only; the Rust spine
+still performs deterministic validation):
+
+```bash
+export NEUROPLC_INFERENCE_ENGINE=llm
+export OPENAI_API_KEY=your_key
+python run_supervisor.py
+```
+
+Environment knobs:
+- `NEUROPLC_LLM_MODEL` (default `gpt-4o-mini`)
+- `NEUROPLC_LLM_TIMEOUT_MS` (default `800`)
+- `NEUROPLC_LLM_FAILURE_THRESHOLD` (default `5`)
+- `NEUROPLC_LLM_COOLDOWN_S` (default `30`)
+
 ---
 
 ## 🐳 Deployment
