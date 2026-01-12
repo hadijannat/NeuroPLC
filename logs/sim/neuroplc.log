@@ -1,0 +1,882 @@
+    Finished `release` profile [optimized] target(s) in 0.14s
+     Running `target/release/neuro-plc --metrics-addr '0.0.0.0:9100' --audit-log logs/sim/audit.jsonl --modbus '127.0.0.1:5020' --run-seconds 10`
+  2026-01-12T18:27:24.087765Z  INFO neuro_plc::runtime::telemetry: Starting metrics server, addr: 0.0.0.0:9100
+    at crates/neuro-plc/src/runtime/telemetry.rs:17
+
+  2026-01-12T18:27:24.087882Z  INFO neuro_plc::runtime::app: Audit logging enabled, path: logs/sim/audit.jsonl
+    at crates/neuro-plc/src/runtime/app.rs:320
+
+  2026-01-12T18:27:24.087993Z  INFO neuro_io::metrics: Metrics server listening on http://0.0.0.0:9100/metrics
+    at crates/neuro-io/src/metrics.rs:231
+
+  2026-01-12T18:27:24.119064Z  INFO neuro_plc::runtime::app: Starting IronThread control loop, cycle_time_ms: 1, max_speed_rpm: 3000.0, max_temp_c: 80.0
+    at crates/neuro-plc/src/runtime/app.rs:143
+
+  2026-01-12T18:27:24.119136Z  INFO neuro_plc::runtime::app: Starting bridge, addr: 127.0.0.1:7000
+    at crates/neuro-plc/src/runtime/app.rs:169
+
+  2026-01-12T18:27:24.119140Z  INFO neuro_plc::runtime::app: Connecting to Modbus HAL, addr: 127.0.0.1:5020
+    at crates/neuro-plc/src/runtime/app.rs:152
+
+  2026-01-12T18:27:24.119151Z  INFO neuro_plc::runtime::app: NeuroPLC running. Connect python-cortex to send recommendations.
+    at crates/neuro-plc/src/runtime/app.rs:219
+
+  2026-01-12T18:27:24.119155Z  INFO neuro_plc::runtime::app: Running for limited duration, seconds: 10
+    at crates/neuro-plc/src/runtime/app.rs:222
+
+  2026-01-12T18:27:24.119317Z  INFO neuro_io::bridge: Bridge listening, addr: 127.0.0.1:7000, tls: false, auth: false, protocol: json
+    at crates/neuro-io/src/bridge.rs:158
+
+  2026-01-12T18:27:24.119626Z  INFO neuro_io::hal_modbus: Connected to Modbus TCP at 127.0.0.1:5020
+    at crates/neuro-io/src/hal_modbus.rs:46
+
+  2026-01-12T18:27:25.475429Z  INFO neuro_io::bridge: Bridge client connected, client_addr: 127.0.0.1:53741
+    at crates/neuro-io/src/bridge.rs:199
+
+  2026-01-12T18:27:25.475536Z  INFO neuro_io::bridge: Bridge handshake received, client_id: Some("python-cortex"), capabilities: ["recommendation.v1", "auth.hmac-sha256"]
+    at crates/neuro-io/src/bridge.rs:444
+    in neuro_io::bridge::handle_incoming with msg: Hello(HelloMsg { msg_type: "hello", protocol_version: ProtocolVersion { major: 1, minor: 0 }, capabilities: ["recommendation.v1", "auth.hmac-sha256"], client_id: Some("python-cortex") }), require_handshake: false, inbound_state: InboundState { last_sequence: None, handshake_seen: false, capabilities: [], client_id: None }
+
+  2026-01-12T18:27:25.475564Z TRACE neuro_io::bridge: Bridge queued state frame, sequence: 1
+    at crates/neuro-io/src/bridge.rs:344
+
+  2026-01-12T18:27:25.475576Z TRACE neuro_io::bridge: Bridge wrote state bytes, bytes: 248, offset: 248
+    at crates/neuro-io/src/bridge.rs:396
+
+  2026-01-12T18:27:25.492481Z DEBUG neuro_io::bridge: Recommendation received, target_speed: Some(0.0), confidence: 1.0
+    at crates/neuro-io/src/bridge.rs:546
+    in neuro_io::bridge::handle_incoming with msg: Recommendation(RecommendationMsg { msg_type: "recommendation", protocol_version: ProtocolVersion { major: 1, minor: 0 }, sequence: 1, target_speed_rpm: Some(0.0), confidence: 1.0, reasoning_hash: "d40ca47ee2a6000052b2524b15e6e1962f8e4c962965dcaa29691e595c68459b", issued_at_unix_us: 1768242445489768, ttl_ms: 1000, client_unix_us: Some(1768242445489768), auth_token: None }), require_handshake: false, inbound_state: InboundState { last_sequence: None, handshake_seen: true, capabilities: ["recommendation.v1", "auth.hmac-sha256"], client_id: Some("python-cortex") }, reasoning_hash: "d40ca47ee2a6000052b2524b15e6e1962f8e4c962965dcaa29691e595c68459b"
+
+  2026-01-12T18:27:25.581082Z TRACE neuro_io::bridge: Bridge queued state frame, sequence: 2
+    at crates/neuro-io/src/bridge.rs:344
+
+  2026-01-12T18:27:25.581102Z TRACE neuro_io::bridge: Bridge wrote state bytes, bytes: 246, offset: 246
+    at crates/neuro-io/src/bridge.rs:396
+
+  2026-01-12T18:27:25.586667Z DEBUG neuro_io::bridge: Recommendation received, target_speed: Some(0.0), confidence: 1.0
+    at crates/neuro-io/src/bridge.rs:546
+    in neuro_io::bridge::handle_incoming with msg: Recommendation(RecommendationMsg { msg_type: "recommendation", protocol_version: ProtocolVersion { major: 1, minor: 0 }, sequence: 2, target_speed_rpm: Some(0.0), confidence: 1.0, reasoning_hash: "0eec538a0f729f49b59dcb722d880c3f11976d6ccca4c68ac4cfc008cb046dc2", issued_at_unix_us: 1768242445582144, ttl_ms: 1000, client_unix_us: Some(1768242445582144), auth_token: None }), require_handshake: false, inbound_state: InboundState { last_sequence: Some(1), handshake_seen: true, capabilities: ["recommendation.v1", "auth.hmac-sha256"], client_id: Some("python-cortex") }, reasoning_hash: "0eec538a0f729f49b59dcb722d880c3f11976d6ccca4c68ac4cfc008cb046dc2"
+
+  2026-01-12T18:27:25.685507Z TRACE neuro_io::bridge: Bridge queued state frame, sequence: 3
+    at crates/neuro-io/src/bridge.rs:344
+
+  2026-01-12T18:27:25.685568Z TRACE neuro_io::bridge: Bridge wrote state bytes, bytes: 246, offset: 246
+    at crates/neuro-io/src/bridge.rs:396
+
+  2026-01-12T18:27:25.700088Z DEBUG neuro_io::bridge: Recommendation received, target_speed: Some(0.0), confidence: 1.0
+    at crates/neuro-io/src/bridge.rs:546
+    in neuro_io::bridge::handle_incoming with msg: Recommendation(RecommendationMsg { msg_type: "recommendation", protocol_version: ProtocolVersion { major: 1, minor: 0 }, sequence: 3, target_speed_rpm: Some(0.0), confidence: 1.0, reasoning_hash: "3a1a601c776ba245cbb35ea28c9126ef071b507813428494dbb38cfcc81308c2", issued_at_unix_us: 1768242445696070, ttl_ms: 1000, client_unix_us: Some(1768242445696070), auth_token: None }), require_handshake: false, inbound_state: InboundState { last_sequence: Some(2), handshake_seen: true, capabilities: ["recommendation.v1", "auth.hmac-sha256"], client_id: Some("python-cortex") }, reasoning_hash: "3a1a601c776ba245cbb35ea28c9126ef071b507813428494dbb38cfcc81308c2"
+
+  2026-01-12T18:27:25.790942Z TRACE neuro_io::bridge: Bridge queued state frame, sequence: 4
+    at crates/neuro-io/src/bridge.rs:344
+
+  2026-01-12T18:27:25.790967Z TRACE neuro_io::bridge: Bridge wrote state bytes, bytes: 246, offset: 246
+    at crates/neuro-io/src/bridge.rs:396
+
+  2026-01-12T18:27:25.798075Z DEBUG neuro_io::bridge: Recommendation received, target_speed: Some(0.0), confidence: 1.0
+    at crates/neuro-io/src/bridge.rs:546
+    in neuro_io::bridge::handle_incoming with msg: Recommendation(RecommendationMsg { msg_type: "recommendation", protocol_version: ProtocolVersion { major: 1, minor: 0 }, sequence: 4, target_speed_rpm: Some(0.0), confidence: 1.0, reasoning_hash: "35fbe6a829cb32d6778ea2a279ef18dd49f66ea191ea3e76ad0360ffc3eec59e", issued_at_unix_us: 1768242445792076, ttl_ms: 1000, client_unix_us: Some(1768242445792076), auth_token: None }), require_handshake: false, inbound_state: InboundState { last_sequence: Some(3), handshake_seen: true, capabilities: ["recommendation.v1", "auth.hmac-sha256"], client_id: Some("python-cortex") }, reasoning_hash: "35fbe6a829cb32d6778ea2a279ef18dd49f66ea191ea3e76ad0360ffc3eec59e"
+
+  2026-01-12T18:27:25.897286Z TRACE neuro_io::bridge: Bridge queued state frame, sequence: 5
+    at crates/neuro-io/src/bridge.rs:344
+
+  2026-01-12T18:27:25.897331Z TRACE neuro_io::bridge: Bridge wrote state bytes, bytes: 246, offset: 246
+    at crates/neuro-io/src/bridge.rs:396
+
+  2026-01-12T18:27:25.915735Z DEBUG neuro_io::bridge: Recommendation received, target_speed: Some(0.0), confidence: 1.0
+    at crates/neuro-io/src/bridge.rs:546
+    in neuro_io::bridge::handle_incoming with msg: Recommendation(RecommendationMsg { msg_type: "recommendation", protocol_version: ProtocolVersion { major: 1, minor: 0 }, sequence: 5, target_speed_rpm: Some(0.0), confidence: 1.0, reasoning_hash: "5b500fd817c59208a1c2a86448bbdd8c9f5ede4d74c76cea387f27df315b15c5", issued_at_unix_us: 1768242445909992, ttl_ms: 1000, client_unix_us: Some(1768242445909992), auth_token: None }), require_handshake: false, inbound_state: InboundState { last_sequence: Some(4), handshake_seen: true, capabilities: ["recommendation.v1", "auth.hmac-sha256"], client_id: Some("python-cortex") }, reasoning_hash: "5b500fd817c59208a1c2a86448bbdd8c9f5ede4d74c76cea387f27df315b15c5"
+
+  2026-01-12T18:27:26.002959Z TRACE neuro_io::bridge: Bridge queued state frame, sequence: 6
+    at crates/neuro-io/src/bridge.rs:344
+
+  2026-01-12T18:27:26.003025Z TRACE neuro_io::bridge: Bridge wrote state bytes, bytes: 246, offset: 246
+    at crates/neuro-io/src/bridge.rs:396
+
+  2026-01-12T18:27:26.009254Z DEBUG neuro_io::bridge: Recommendation received, target_speed: Some(50.0), confidence: 0.8500000238418579
+    at crates/neuro-io/src/bridge.rs:546
+    in neuro_io::bridge::handle_incoming with msg: Recommendation(RecommendationMsg { msg_type: "recommendation", protocol_version: ProtocolVersion { major: 1, minor: 0 }, sequence: 6, target_speed_rpm: Some(50.0), confidence: 0.85, reasoning_hash: "37c70038a64e83f7d999e0ac2114d0afa628a1a2579cf8e261776bc9af19628a", issued_at_unix_us: 1768242446004276, ttl_ms: 1000, client_unix_us: Some(1768242446004276), auth_token: None }), require_handshake: false, inbound_state: InboundState { last_sequence: Some(5), handshake_seen: true, capabilities: ["recommendation.v1", "auth.hmac-sha256"], client_id: Some("python-cortex") }, reasoning_hash: "37c70038a64e83f7d999e0ac2114d0afa628a1a2579cf8e261776bc9af19628a"
+
+  2026-01-12T18:27:26.107056Z TRACE neuro_io::bridge: Bridge queued state frame, sequence: 7
+    at crates/neuro-io/src/bridge.rs:344
+
+  2026-01-12T18:27:26.107094Z TRACE neuro_io::bridge: Bridge wrote state bytes, bytes: 246, offset: 246
+    at crates/neuro-io/src/bridge.rs:396
+
+  2026-01-12T18:27:26.134802Z DEBUG neuro_io::bridge: Recommendation received, target_speed: Some(50.0), confidence: 0.8500000238418579
+    at crates/neuro-io/src/bridge.rs:546
+    in neuro_io::bridge::handle_incoming with msg: Recommendation(RecommendationMsg { msg_type: "recommendation", protocol_version: ProtocolVersion { major: 1, minor: 0 }, sequence: 7, target_speed_rpm: Some(50.0), confidence: 0.85, reasoning_hash: "83607d04b194edce04cc146bbda082ebbb608754737c5147711ce714075aaa31", issued_at_unix_us: 1768242446132577, ttl_ms: 1000, client_unix_us: Some(1768242446132577), auth_token: None }), require_handshake: false, inbound_state: InboundState { last_sequence: Some(6), handshake_seen: true, capabilities: ["recommendation.v1", "auth.hmac-sha256"], client_id: Some("python-cortex") }, reasoning_hash: "83607d04b194edce04cc146bbda082ebbb608754737c5147711ce714075aaa31"
+
+  2026-01-12T18:27:26.211548Z TRACE neuro_io::bridge: Bridge queued state frame, sequence: 8
+    at crates/neuro-io/src/bridge.rs:344
+
+  2026-01-12T18:27:26.211592Z TRACE neuro_io::bridge: Bridge wrote state bytes, bytes: 246, offset: 246
+    at crates/neuro-io/src/bridge.rs:396
+
+  2026-01-12T18:27:26.218181Z DEBUG neuro_io::bridge: Recommendation received, target_speed: Some(51.0), confidence: 0.8500000238418579
+    at crates/neuro-io/src/bridge.rs:546
+    in neuro_io::bridge::handle_incoming with msg: Recommendation(RecommendationMsg { msg_type: "recommendation", protocol_version: ProtocolVersion { major: 1, minor: 0 }, sequence: 8, target_speed_rpm: Some(51.0), confidence: 0.85, reasoning_hash: "b7a44ae3cfe43318a83457cfce2ac28707c80cc2db885808f35744a776306d03", issued_at_unix_us: 1768242446212540, ttl_ms: 1000, client_unix_us: Some(1768242446212540), auth_token: None }), require_handshake: false, inbound_state: InboundState { last_sequence: Some(7), handshake_seen: true, capabilities: ["recommendation.v1", "auth.hmac-sha256"], client_id: Some("python-cortex") }, reasoning_hash: "b7a44ae3cfe43318a83457cfce2ac28707c80cc2db885808f35744a776306d03"
+
+  2026-01-12T18:27:26.312770Z TRACE neuro_io::bridge: Bridge queued state frame, sequence: 9
+    at crates/neuro-io/src/bridge.rs:344
+
+  2026-01-12T18:27:26.312807Z TRACE neuro_io::bridge: Bridge wrote state bytes, bytes: 246, offset: 246
+    at crates/neuro-io/src/bridge.rs:396
+
+  2026-01-12T18:27:26.317993Z DEBUG neuro_io::bridge: Recommendation received, target_speed: Some(57.0), confidence: 0.8500000238418579
+    at crates/neuro-io/src/bridge.rs:546
+    in neuro_io::bridge::handle_incoming with msg: Recommendation(RecommendationMsg { msg_type: "recommendation", protocol_version: ProtocolVersion { major: 1, minor: 0 }, sequence: 9, target_speed_rpm: Some(57.0), confidence: 0.85, reasoning_hash: "1bb8c63c7fbcfcbe15f806322ec44e06adc8a8fe6405c2296c92631ea33a23eb", issued_at_unix_us: 1768242446313867, ttl_ms: 1000, client_unix_us: Some(1768242446313867), auth_token: None }), require_handshake: false, inbound_state: InboundState { last_sequence: Some(8), handshake_seen: true, capabilities: ["recommendation.v1", "auth.hmac-sha256"], client_id: Some("python-cortex") }, reasoning_hash: "1bb8c63c7fbcfcbe15f806322ec44e06adc8a8fe6405c2296c92631ea33a23eb"
+
+  2026-01-12T18:27:26.417840Z TRACE neuro_io::bridge: Bridge queued state frame, sequence: 10
+    at crates/neuro-io/src/bridge.rs:344
+
+  2026-01-12T18:27:26.417874Z TRACE neuro_io::bridge: Bridge wrote state bytes, bytes: 248, offset: 248
+    at crates/neuro-io/src/bridge.rs:396
+
+  2026-01-12T18:27:26.425425Z DEBUG neuro_io::bridge: Recommendation received, target_speed: Some(62.0), confidence: 0.8500000238418579
+    at crates/neuro-io/src/bridge.rs:546
+    in neuro_io::bridge::handle_incoming with msg: Recommendation(RecommendationMsg { msg_type: "recommendation", protocol_version: ProtocolVersion { major: 1, minor: 0 }, sequence: 10, target_speed_rpm: Some(62.0), confidence: 0.85, reasoning_hash: "9f1b89193c1de7b55ae27c55be7a5c333336dd31e5c5d165b3779e0ac2a4dc06", issued_at_unix_us: 1768242446419040, ttl_ms: 1000, client_unix_us: Some(1768242446419040), auth_token: None }), require_handshake: false, inbound_state: InboundState { last_sequence: Some(9), handshake_seen: true, capabilities: ["recommendation.v1", "auth.hmac-sha256"], client_id: Some("python-cortex") }, reasoning_hash: "9f1b89193c1de7b55ae27c55be7a5c333336dd31e5c5d165b3779e0ac2a4dc06"
+
+  2026-01-12T18:27:26.522810Z TRACE neuro_io::bridge: Bridge queued state frame, sequence: 11
+    at crates/neuro-io/src/bridge.rs:344
+
+  2026-01-12T18:27:26.522852Z TRACE neuro_io::bridge: Bridge wrote state bytes, bytes: 248, offset: 248
+    at crates/neuro-io/src/bridge.rs:396
+
+  2026-01-12T18:27:26.528181Z DEBUG neuro_io::bridge: Recommendation received, target_speed: Some(67.0), confidence: 0.8500000238418579
+    at crates/neuro-io/src/bridge.rs:546
+    in neuro_io::bridge::handle_incoming with msg: Recommendation(RecommendationMsg { msg_type: "recommendation", protocol_version: ProtocolVersion { major: 1, minor: 0 }, sequence: 11, target_speed_rpm: Some(67.0), confidence: 0.85, reasoning_hash: "1ebddcbd284bc2f071267173c875e9315af1e56ffa9c6ddf3e719c5e58f4b59c", issued_at_unix_us: 1768242446523890, ttl_ms: 1000, client_unix_us: Some(1768242446523890), auth_token: None }), require_handshake: false, inbound_state: InboundState { last_sequence: Some(10), handshake_seen: true, capabilities: ["recommendation.v1", "auth.hmac-sha256"], client_id: Some("python-cortex") }, reasoning_hash: "1ebddcbd284bc2f071267173c875e9315af1e56ffa9c6ddf3e719c5e58f4b59c"
+
+  2026-01-12T18:27:26.625966Z TRACE neuro_io::bridge: Bridge queued state frame, sequence: 12
+    at crates/neuro-io/src/bridge.rs:344
+
+  2026-01-12T18:27:26.626002Z TRACE neuro_io::bridge: Bridge wrote state bytes, bytes: 248, offset: 248
+    at crates/neuro-io/src/bridge.rs:396
+
+  2026-01-12T18:27:26.633469Z DEBUG neuro_io::bridge: Recommendation received, target_speed: Some(72.0), confidence: 0.8500000238418579
+    at crates/neuro-io/src/bridge.rs:546
+    in neuro_io::bridge::handle_incoming with msg: Recommendation(RecommendationMsg { msg_type: "recommendation", protocol_version: ProtocolVersion { major: 1, minor: 0 }, sequence: 12, target_speed_rpm: Some(72.0), confidence: 0.85, reasoning_hash: "47ce12c4f6504bce1e4f6b27b5fcf590fcd8dc22f9eec8179a1f0675b2b0f275", issued_at_unix_us: 1768242446627334, ttl_ms: 1000, client_unix_us: Some(1768242446627334), auth_token: None }), require_handshake: false, inbound_state: InboundState { last_sequence: Some(11), handshake_seen: true, capabilities: ["recommendation.v1", "auth.hmac-sha256"], client_id: Some("python-cortex") }, reasoning_hash: "47ce12c4f6504bce1e4f6b27b5fcf590fcd8dc22f9eec8179a1f0675b2b0f275"
+
+  2026-01-12T18:27:26.726818Z TRACE neuro_io::bridge: Bridge queued state frame, sequence: 13
+    at crates/neuro-io/src/bridge.rs:344
+
+  2026-01-12T18:27:26.726885Z TRACE neuro_io::bridge: Bridge wrote state bytes, bytes: 248, offset: 248
+    at crates/neuro-io/src/bridge.rs:396
+
+  2026-01-12T18:27:26.733932Z DEBUG neuro_io::bridge: Recommendation received, target_speed: Some(79.0), confidence: 0.8500000238418579
+    at crates/neuro-io/src/bridge.rs:546
+    in neuro_io::bridge::handle_incoming with msg: Recommendation(RecommendationMsg { msg_type: "recommendation", protocol_version: ProtocolVersion { major: 1, minor: 0 }, sequence: 13, target_speed_rpm: Some(79.0), confidence: 0.85, reasoning_hash: "0ecbf951ecc61d2bba8afb2fd1f2ee98c1d32b9e45817f143e8ad1f132edbd56", issued_at_unix_us: 1768242446728098, ttl_ms: 1000, client_unix_us: Some(1768242446728098), auth_token: None }), require_handshake: false, inbound_state: InboundState { last_sequence: Some(12), handshake_seen: true, capabilities: ["recommendation.v1", "auth.hmac-sha256"], client_id: Some("python-cortex") }, reasoning_hash: "0ecbf951ecc61d2bba8afb2fd1f2ee98c1d32b9e45817f143e8ad1f132edbd56"
+
+  2026-01-12T18:27:26.830376Z TRACE neuro_io::bridge: Bridge queued state frame, sequence: 14
+    at crates/neuro-io/src/bridge.rs:344
+
+  2026-01-12T18:27:26.830415Z TRACE neuro_io::bridge: Bridge wrote state bytes, bytes: 248, offset: 248
+    at crates/neuro-io/src/bridge.rs:396
+
+  2026-01-12T18:27:26.845573Z DEBUG neuro_io::bridge: Recommendation received, target_speed: Some(85.0), confidence: 0.8500000238418579
+    at crates/neuro-io/src/bridge.rs:546
+    in neuro_io::bridge::handle_incoming with msg: Recommendation(RecommendationMsg { msg_type: "recommendation", protocol_version: ProtocolVersion { major: 1, minor: 0 }, sequence: 14, target_speed_rpm: Some(85.0), confidence: 0.85, reasoning_hash: "c8e6d2d88289e5eeba2bea1cd690970c7ef787d82b2f7a0b7a9a42669f01b563", issued_at_unix_us: 1768242446843213, ttl_ms: 1000, client_unix_us: Some(1768242446843213), auth_token: None }), require_handshake: false, inbound_state: InboundState { last_sequence: Some(13), handshake_seen: true, capabilities: ["recommendation.v1", "auth.hmac-sha256"], client_id: Some("python-cortex") }, reasoning_hash: "c8e6d2d88289e5eeba2bea1cd690970c7ef787d82b2f7a0b7a9a42669f01b563"
+
+  2026-01-12T18:27:26.930941Z TRACE neuro_io::bridge: Bridge queued state frame, sequence: 15
+    at crates/neuro-io/src/bridge.rs:344
+
+  2026-01-12T18:27:26.930980Z TRACE neuro_io::bridge: Bridge wrote state bytes, bytes: 248, offset: 248
+    at crates/neuro-io/src/bridge.rs:396
+
+  2026-01-12T18:27:26.936799Z DEBUG neuro_io::bridge: Recommendation received, target_speed: Some(91.0), confidence: 0.8500000238418579
+    at crates/neuro-io/src/bridge.rs:546
+    in neuro_io::bridge::handle_incoming with msg: Recommendation(RecommendationMsg { msg_type: "recommendation", protocol_version: ProtocolVersion { major: 1, minor: 0 }, sequence: 15, target_speed_rpm: Some(91.0), confidence: 0.85, reasoning_hash: "d2a1b19663e46de20f50230463d980d8570c2703d27b358d03ca7d2e242982d2", issued_at_unix_us: 1768242446931849, ttl_ms: 1000, client_unix_us: Some(1768242446931849), auth_token: None }), require_handshake: false, inbound_state: InboundState { last_sequence: Some(14), handshake_seen: true, capabilities: ["recommendation.v1", "auth.hmac-sha256"], client_id: Some("python-cortex") }, reasoning_hash: "d2a1b19663e46de20f50230463d980d8570c2703d27b358d03ca7d2e242982d2"
+
+  2026-01-12T18:27:27.037896Z TRACE neuro_io::bridge: Bridge queued state frame, sequence: 16
+    at crates/neuro-io/src/bridge.rs:344
+
+  2026-01-12T18:27:27.037936Z TRACE neuro_io::bridge: Bridge wrote state bytes, bytes: 248, offset: 248
+    at crates/neuro-io/src/bridge.rs:396
+
+  2026-01-12T18:27:27.043829Z DEBUG neuro_io::bridge: Recommendation received, target_speed: Some(96.0), confidence: 0.8500000238418579
+    at crates/neuro-io/src/bridge.rs:546
+    in neuro_io::bridge::handle_incoming with msg: Recommendation(RecommendationMsg { msg_type: "recommendation", protocol_version: ProtocolVersion { major: 1, minor: 0 }, sequence: 16, target_speed_rpm: Some(96.0), confidence: 0.85, reasoning_hash: "e03ce9de15b0b523678f2d8e3d7dfc98201dea30860a5bcc0fbd73382be4b15f", issued_at_unix_us: 1768242447038865, ttl_ms: 1000, client_unix_us: Some(1768242447038865), auth_token: None }), require_handshake: false, inbound_state: InboundState { last_sequence: Some(15), handshake_seen: true, capabilities: ["recommendation.v1", "auth.hmac-sha256"], client_id: Some("python-cortex") }, reasoning_hash: "e03ce9de15b0b523678f2d8e3d7dfc98201dea30860a5bcc0fbd73382be4b15f"
+
+  2026-01-12T18:27:27.141553Z TRACE neuro_io::bridge: Bridge queued state frame, sequence: 17
+    at crates/neuro-io/src/bridge.rs:344
+
+  2026-01-12T18:27:27.141592Z TRACE neuro_io::bridge: Bridge wrote state bytes, bytes: 248, offset: 248
+    at crates/neuro-io/src/bridge.rs:396
+
+  2026-01-12T18:27:27.147844Z DEBUG neuro_io::bridge: Recommendation received, target_speed: Some(101.0), confidence: 0.8500000238418579
+    at crates/neuro-io/src/bridge.rs:546
+    in neuro_io::bridge::handle_incoming with msg: Recommendation(RecommendationMsg { msg_type: "recommendation", protocol_version: ProtocolVersion { major: 1, minor: 0 }, sequence: 17, target_speed_rpm: Some(101.0), confidence: 0.85, reasoning_hash: "acfa198447e8bf7dfe0cbd2948bedc006ac968e8e4dd5913f57f28fa5ae1a756", issued_at_unix_us: 1768242447142543, ttl_ms: 1000, client_unix_us: Some(1768242447142543), auth_token: None }), require_handshake: false, inbound_state: InboundState { last_sequence: Some(16), handshake_seen: true, capabilities: ["recommendation.v1", "auth.hmac-sha256"], client_id: Some("python-cortex") }, reasoning_hash: "acfa198447e8bf7dfe0cbd2948bedc006ac968e8e4dd5913f57f28fa5ae1a756"
+
+  2026-01-12T18:27:27.242076Z TRACE neuro_io::bridge: Bridge queued state frame, sequence: 18
+    at crates/neuro-io/src/bridge.rs:344
+
+  2026-01-12T18:27:27.242149Z TRACE neuro_io::bridge: Bridge wrote state bytes, bytes: 248, offset: 248
+    at crates/neuro-io/src/bridge.rs:396
+
+  2026-01-12T18:27:27.346659Z TRACE neuro_io::bridge: Bridge queued state frame, sequence: 19
+    at crates/neuro-io/src/bridge.rs:344
+
+  2026-01-12T18:27:27.346691Z TRACE neuro_io::bridge: Bridge wrote state bytes, bytes: 248, offset: 248
+    at crates/neuro-io/src/bridge.rs:396
+
+  2026-01-12T18:27:27.449480Z TRACE neuro_io::bridge: Bridge queued state frame, sequence: 20
+    at crates/neuro-io/src/bridge.rs:344
+
+  2026-01-12T18:27:27.449521Z TRACE neuro_io::bridge: Bridge wrote state bytes, bytes: 248, offset: 248
+    at crates/neuro-io/src/bridge.rs:396
+
+  2026-01-12T18:27:27.525601Z DEBUG neuro_io::bridge: Recommendation received, target_speed: Some(108.0), confidence: 0.8500000238418579
+    at crates/neuro-io/src/bridge.rs:546
+    in neuro_io::bridge::handle_incoming with msg: Recommendation(RecommendationMsg { msg_type: "recommendation", protocol_version: ProtocolVersion { major: 1, minor: 0 }, sequence: 18, target_speed_rpm: Some(108.0), confidence: 0.85, reasoning_hash: "609923515e47c7a1b45fd1268c99894e8d435fffdd88b96f62bdb36c0ec47d10", issued_at_unix_us: 1768242447524850, ttl_ms: 1000, client_unix_us: Some(1768242447524850), auth_token: None }), require_handshake: false, inbound_state: InboundState { last_sequence: Some(17), handshake_seen: true, capabilities: ["recommendation.v1", "auth.hmac-sha256"], client_id: Some("python-cortex") }, reasoning_hash: "609923515e47c7a1b45fd1268c99894e8d435fffdd88b96f62bdb36c0ec47d10"
+
+  2026-01-12T18:27:27.549604Z TRACE neuro_io::bridge: Bridge queued state frame, sequence: 21
+    at crates/neuro-io/src/bridge.rs:344
+
+  2026-01-12T18:27:27.549638Z TRACE neuro_io::bridge: Bridge wrote state bytes, bytes: 248, offset: 248
+    at crates/neuro-io/src/bridge.rs:396
+
+  2026-01-12T18:27:27.563084Z DEBUG neuro_io::bridge: Recommendation received, target_speed: Some(113.0), confidence: 0.8500000238418579
+    at crates/neuro-io/src/bridge.rs:546
+    in neuro_io::bridge::handle_incoming with msg: Recommendation(RecommendationMsg { msg_type: "recommendation", protocol_version: ProtocolVersion { major: 1, minor: 0 }, sequence: 19, target_speed_rpm: Some(113.0), confidence: 0.85, reasoning_hash: "26dbeb2fbc2c3faacc181df23b094eb71c5503e46b40629e68aac31191e84871", issued_at_unix_us: 1768242447562518, ttl_ms: 1000, client_unix_us: Some(1768242447562518), auth_token: None }), require_handshake: false, inbound_state: InboundState { last_sequence: Some(18), handshake_seen: true, capabilities: ["recommendation.v1", "auth.hmac-sha256"], client_id: Some("python-cortex") }, reasoning_hash: "26dbeb2fbc2c3faacc181df23b094eb71c5503e46b40629e68aac31191e84871"
+
+  2026-01-12T18:27:27.570671Z DEBUG neuro_io::bridge: Recommendation received, target_speed: Some(115.0), confidence: 0.8500000238418579
+    at crates/neuro-io/src/bridge.rs:546
+    in neuro_io::bridge::handle_incoming with msg: Recommendation(RecommendationMsg { msg_type: "recommendation", protocol_version: ProtocolVersion { major: 1, minor: 0 }, sequence: 20, target_speed_rpm: Some(115.0), confidence: 0.85, reasoning_hash: "831da5e2f9a95c90b13d7b4a0c5ea6e984589bcbc9928809fa5ac57c4b01d639", issued_at_unix_us: 1768242447562554, ttl_ms: 1000, client_unix_us: Some(1768242447562554), auth_token: None }), require_handshake: false, inbound_state: InboundState { last_sequence: Some(19), handshake_seen: true, capabilities: ["recommendation.v1", "auth.hmac-sha256"], client_id: Some("python-cortex") }, reasoning_hash: "831da5e2f9a95c90b13d7b4a0c5ea6e984589bcbc9928809fa5ac57c4b01d639"
+
+  2026-01-12T18:27:27.570699Z DEBUG neuro_io::bridge: Recommendation received, target_speed: Some(118.0), confidence: 0.8500000238418579
+    at crates/neuro-io/src/bridge.rs:546
+    in neuro_io::bridge::handle_incoming with msg: Recommendation(RecommendationMsg { msg_type: "recommendation", protocol_version: ProtocolVersion { major: 1, minor: 0 }, sequence: 21, target_speed_rpm: Some(118.0), confidence: 0.85, reasoning_hash: "bd0def8658b91ecd1c67dcf5728bb18fe1b6fb50ba964f233e271ca2f1c7daf3", issued_at_unix_us: 1768242447562574, ttl_ms: 1000, client_unix_us: Some(1768242447562574), auth_token: None }), require_handshake: false, inbound_state: InboundState { last_sequence: Some(20), handshake_seen: true, capabilities: ["recommendation.v1", "auth.hmac-sha256"], client_id: Some("python-cortex") }, reasoning_hash: "bd0def8658b91ecd1c67dcf5728bb18fe1b6fb50ba964f233e271ca2f1c7daf3"
+
+  2026-01-12T18:27:27.653021Z TRACE neuro_io::bridge: Bridge queued state frame, sequence: 22
+    at crates/neuro-io/src/bridge.rs:344
+
+  2026-01-12T18:27:27.653058Z TRACE neuro_io::bridge: Bridge wrote state bytes, bytes: 248, offset: 248
+    at crates/neuro-io/src/bridge.rs:396
+
+  2026-01-12T18:27:27.659142Z DEBUG neuro_io::bridge: Recommendation received, target_speed: Some(124.0), confidence: 0.8500000238418579
+    at crates/neuro-io/src/bridge.rs:546
+    in neuro_io::bridge::handle_incoming with msg: Recommendation(RecommendationMsg { msg_type: "recommendation", protocol_version: ProtocolVersion { major: 1, minor: 0 }, sequence: 22, target_speed_rpm: Some(124.0), confidence: 0.85, reasoning_hash: "7f3511e417de0903d082ed4b75b2ecff7258c46e3817bd983a4344778a760423", issued_at_unix_us: 1768242447653185, ttl_ms: 1000, client_unix_us: Some(1768242447653185), auth_token: None }), require_handshake: false, inbound_state: InboundState { last_sequence: Some(21), handshake_seen: true, capabilities: ["recommendation.v1", "auth.hmac-sha256"], client_id: Some("python-cortex") }, reasoning_hash: "7f3511e417de0903d082ed4b75b2ecff7258c46e3817bd983a4344778a760423"
+
+  2026-01-12T18:27:27.758721Z TRACE neuro_io::bridge: Bridge queued state frame, sequence: 23
+    at crates/neuro-io/src/bridge.rs:344
+
+  2026-01-12T18:27:27.758756Z TRACE neuro_io::bridge: Bridge wrote state bytes, bytes: 248, offset: 248
+    at crates/neuro-io/src/bridge.rs:396
+
+  2026-01-12T18:27:27.764063Z DEBUG neuro_io::bridge: Recommendation received, target_speed: Some(128.0), confidence: 0.8500000238418579
+    at crates/neuro-io/src/bridge.rs:546
+    in neuro_io::bridge::handle_incoming with msg: Recommendation(RecommendationMsg { msg_type: "recommendation", protocol_version: ProtocolVersion { major: 1, minor: 0 }, sequence: 23, target_speed_rpm: Some(128.0), confidence: 0.85, reasoning_hash: "d6461282491fb5071774a5ad2b64e9687f2e3c0a4cd83c8ec62fd8e5e2e5437b", issued_at_unix_us: 1768242447758881, ttl_ms: 1000, client_unix_us: Some(1768242447758881), auth_token: None }), require_handshake: false, inbound_state: InboundState { last_sequence: Some(22), handshake_seen: true, capabilities: ["recommendation.v1", "auth.hmac-sha256"], client_id: Some("python-cortex") }, reasoning_hash: "d6461282491fb5071774a5ad2b64e9687f2e3c0a4cd83c8ec62fd8e5e2e5437b"
+
+  2026-01-12T18:27:27.863777Z TRACE neuro_io::bridge: Bridge queued state frame, sequence: 24
+    at crates/neuro-io/src/bridge.rs:344
+
+  2026-01-12T18:27:27.863807Z TRACE neuro_io::bridge: Bridge wrote state bytes, bytes: 248, offset: 248
+    at crates/neuro-io/src/bridge.rs:396
+
+  2026-01-12T18:27:27.870795Z DEBUG neuro_io::bridge: Recommendation received, target_speed: Some(134.0), confidence: 0.8500000238418579
+    at crates/neuro-io/src/bridge.rs:546
+    in neuro_io::bridge::handle_incoming with msg: Recommendation(RecommendationMsg { msg_type: "recommendation", protocol_version: ProtocolVersion { major: 1, minor: 0 }, sequence: 24, target_speed_rpm: Some(134.0), confidence: 0.85, reasoning_hash: "77581f6750dec5e1a4464101d95e52cdc3d3309852d3954b36b27c054ebfc270", issued_at_unix_us: 1768242447863935, ttl_ms: 1000, client_unix_us: Some(1768242447863935), auth_token: None }), require_handshake: false, inbound_state: InboundState { last_sequence: Some(23), handshake_seen: true, capabilities: ["recommendation.v1", "auth.hmac-sha256"], client_id: Some("python-cortex") }, reasoning_hash: "77581f6750dec5e1a4464101d95e52cdc3d3309852d3954b36b27c054ebfc270"
+
+  2026-01-12T18:27:27.968450Z TRACE neuro_io::bridge: Bridge queued state frame, sequence: 25
+    at crates/neuro-io/src/bridge.rs:344
+
+  2026-01-12T18:27:27.968520Z TRACE neuro_io::bridge: Bridge wrote state bytes, bytes: 248, offset: 248
+    at crates/neuro-io/src/bridge.rs:396
+
+  2026-01-12T18:27:27.976083Z DEBUG neuro_io::bridge: Recommendation received, target_speed: Some(138.0), confidence: 0.8500000238418579
+    at crates/neuro-io/src/bridge.rs:546
+    in neuro_io::bridge::handle_incoming with msg: Recommendation(RecommendationMsg { msg_type: "recommendation", protocol_version: ProtocolVersion { major: 1, minor: 0 }, sequence: 25, target_speed_rpm: Some(138.0), confidence: 0.85, reasoning_hash: "731e7c9df9ac6d22689be8b6994f7656b8b389f36e1dfec7cff20ea2ff6d092d", issued_at_unix_us: 1768242447968637, ttl_ms: 1000, client_unix_us: Some(1768242447968637), auth_token: None }), require_handshake: false, inbound_state: InboundState { last_sequence: Some(24), handshake_seen: true, capabilities: ["recommendation.v1", "auth.hmac-sha256"], client_id: Some("python-cortex") }, reasoning_hash: "731e7c9df9ac6d22689be8b6994f7656b8b389f36e1dfec7cff20ea2ff6d092d"
+
+  2026-01-12T18:27:28.070616Z TRACE neuro_io::bridge: Bridge queued state frame, sequence: 26
+    at crates/neuro-io/src/bridge.rs:344
+
+  2026-01-12T18:27:28.070664Z TRACE neuro_io::bridge: Bridge wrote state bytes, bytes: 248, offset: 248
+    at crates/neuro-io/src/bridge.rs:396
+
+  2026-01-12T18:27:28.076873Z DEBUG neuro_io::bridge: Recommendation received, target_speed: Some(144.0), confidence: 0.8500000238418579
+    at crates/neuro-io/src/bridge.rs:546
+    in neuro_io::bridge::handle_incoming with msg: Recommendation(RecommendationMsg { msg_type: "recommendation", protocol_version: ProtocolVersion { major: 1, minor: 0 }, sequence: 26, target_speed_rpm: Some(144.0), confidence: 0.85, reasoning_hash: "4c8a85543e3282e80fa8161d2ff64e532ecb0475d54bfb42b1833b556829113a", issued_at_unix_us: 1768242448070799, ttl_ms: 1000, client_unix_us: Some(1768242448070799), auth_token: None }), require_handshake: false, inbound_state: InboundState { last_sequence: Some(25), handshake_seen: true, capabilities: ["recommendation.v1", "auth.hmac-sha256"], client_id: Some("python-cortex") }, reasoning_hash: "4c8a85543e3282e80fa8161d2ff64e532ecb0475d54bfb42b1833b556829113a"
+
+  2026-01-12T18:27:28.176235Z TRACE neuro_io::bridge: Bridge queued state frame, sequence: 27
+    at crates/neuro-io/src/bridge.rs:344
+
+  2026-01-12T18:27:28.176267Z TRACE neuro_io::bridge: Bridge wrote state bytes, bytes: 249, offset: 249
+    at crates/neuro-io/src/bridge.rs:396
+
+  2026-01-12T18:27:28.183809Z DEBUG neuro_io::bridge: Recommendation received, target_speed: Some(151.0), confidence: 0.8500000238418579
+    at crates/neuro-io/src/bridge.rs:546
+    in neuro_io::bridge::handle_incoming with msg: Recommendation(RecommendationMsg { msg_type: "recommendation", protocol_version: ProtocolVersion { major: 1, minor: 0 }, sequence: 27, target_speed_rpm: Some(151.0), confidence: 0.85, reasoning_hash: "81e4b6ad0b23c505ddd034bf02604502f1c942caa2206ef1c60cb9ceb6a68768", issued_at_unix_us: 1768242448176378, ttl_ms: 1000, client_unix_us: Some(1768242448176378), auth_token: None }), require_handshake: false, inbound_state: InboundState { last_sequence: Some(26), handshake_seen: true, capabilities: ["recommendation.v1", "auth.hmac-sha256"], client_id: Some("python-cortex") }, reasoning_hash: "81e4b6ad0b23c505ddd034bf02604502f1c942caa2206ef1c60cb9ceb6a68768"
+
+  2026-01-12T18:27:28.276786Z TRACE neuro_io::bridge: Bridge queued state frame, sequence: 28
+    at crates/neuro-io/src/bridge.rs:344
+
+  2026-01-12T18:27:28.276815Z TRACE neuro_io::bridge: Bridge wrote state bytes, bytes: 249, offset: 249
+    at crates/neuro-io/src/bridge.rs:396
+
+  2026-01-12T18:27:28.283222Z DEBUG neuro_io::bridge: Recommendation received, target_speed: Some(157.0), confidence: 0.8500000238418579
+    at crates/neuro-io/src/bridge.rs:546
+    in neuro_io::bridge::handle_incoming with msg: Recommendation(RecommendationMsg { msg_type: "recommendation", protocol_version: ProtocolVersion { major: 1, minor: 0 }, sequence: 28, target_speed_rpm: Some(157.0), confidence: 0.85, reasoning_hash: "b2a86286ad76261986141721d290f806072a6a583c33797f1155e031505b3551", issued_at_unix_us: 1768242448276926, ttl_ms: 1000, client_unix_us: Some(1768242448276926), auth_token: None }), require_handshake: false, inbound_state: InboundState { last_sequence: Some(27), handshake_seen: true, capabilities: ["recommendation.v1", "auth.hmac-sha256"], client_id: Some("python-cortex") }, reasoning_hash: "b2a86286ad76261986141721d290f806072a6a583c33797f1155e031505b3551"
+
+  2026-01-12T18:27:28.381613Z TRACE neuro_io::bridge: Bridge queued state frame, sequence: 29
+    at crates/neuro-io/src/bridge.rs:344
+
+  2026-01-12T18:27:28.381648Z TRACE neuro_io::bridge: Bridge wrote state bytes, bytes: 249, offset: 249
+    at crates/neuro-io/src/bridge.rs:396
+
+  2026-01-12T18:27:28.387801Z DEBUG neuro_io::bridge: Recommendation received, target_speed: Some(163.0), confidence: 0.8500000238418579
+    at crates/neuro-io/src/bridge.rs:546
+    in neuro_io::bridge::handle_incoming with msg: Recommendation(RecommendationMsg { msg_type: "recommendation", protocol_version: ProtocolVersion { major: 1, minor: 0 }, sequence: 29, target_speed_rpm: Some(163.0), confidence: 0.85, reasoning_hash: "282a8e969778d54bebc5883b9e9fee21ff0ab0bee5c6cec6a428fc70f30487b1", issued_at_unix_us: 1768242448381778, ttl_ms: 1000, client_unix_us: Some(1768242448381778), auth_token: None }), require_handshake: false, inbound_state: InboundState { last_sequence: Some(28), handshake_seen: true, capabilities: ["recommendation.v1", "auth.hmac-sha256"], client_id: Some("python-cortex") }, reasoning_hash: "282a8e969778d54bebc5883b9e9fee21ff0ab0bee5c6cec6a428fc70f30487b1"
+
+  2026-01-12T18:27:28.481739Z TRACE neuro_io::bridge: Bridge queued state frame, sequence: 30
+    at crates/neuro-io/src/bridge.rs:344
+
+  2026-01-12T18:27:28.481771Z TRACE neuro_io::bridge: Bridge wrote state bytes, bytes: 249, offset: 249
+    at crates/neuro-io/src/bridge.rs:396
+
+  2026-01-12T18:27:28.487871Z DEBUG neuro_io::bridge: Recommendation received, target_speed: Some(167.0), confidence: 0.8500000238418579
+    at crates/neuro-io/src/bridge.rs:546
+    in neuro_io::bridge::handle_incoming with msg: Recommendation(RecommendationMsg { msg_type: "recommendation", protocol_version: ProtocolVersion { major: 1, minor: 0 }, sequence: 30, target_speed_rpm: Some(167.0), confidence: 0.85, reasoning_hash: "98996c355646be02c45d44ebc45a002875ef1ac532d054c42e44f6051825567b", issued_at_unix_us: 1768242448481906, ttl_ms: 1000, client_unix_us: Some(1768242448481906), auth_token: None }), require_handshake: false, inbound_state: InboundState { last_sequence: Some(29), handshake_seen: true, capabilities: ["recommendation.v1", "auth.hmac-sha256"], client_id: Some("python-cortex") }, reasoning_hash: "98996c355646be02c45d44ebc45a002875ef1ac532d054c42e44f6051825567b"
+
+  2026-01-12T18:27:28.582236Z TRACE neuro_io::bridge: Bridge queued state frame, sequence: 31
+    at crates/neuro-io/src/bridge.rs:344
+
+  2026-01-12T18:27:28.582269Z TRACE neuro_io::bridge: Bridge wrote state bytes, bytes: 249, offset: 249
+    at crates/neuro-io/src/bridge.rs:396
+
+  2026-01-12T18:27:28.588008Z DEBUG neuro_io::bridge: Recommendation received, target_speed: Some(174.0), confidence: 0.8500000238418579
+    at crates/neuro-io/src/bridge.rs:546
+    in neuro_io::bridge::handle_incoming with msg: Recommendation(RecommendationMsg { msg_type: "recommendation", protocol_version: ProtocolVersion { major: 1, minor: 0 }, sequence: 31, target_speed_rpm: Some(174.0), confidence: 0.85, reasoning_hash: "9c2a65c74fd5e290b76ac87f3e72993e6b735da00271148db47f2d5452bcf5ca", issued_at_unix_us: 1768242448582455, ttl_ms: 1000, client_unix_us: Some(1768242448582455), auth_token: None }), require_handshake: false, inbound_state: InboundState { last_sequence: Some(30), handshake_seen: true, capabilities: ["recommendation.v1", "auth.hmac-sha256"], client_id: Some("python-cortex") }, reasoning_hash: "9c2a65c74fd5e290b76ac87f3e72993e6b735da00271148db47f2d5452bcf5ca"
+
+  2026-01-12T18:27:28.689244Z TRACE neuro_io::bridge: Bridge queued state frame, sequence: 32
+    at crates/neuro-io/src/bridge.rs:344
+
+  2026-01-12T18:27:28.689276Z TRACE neuro_io::bridge: Bridge wrote state bytes, bytes: 249, offset: 249
+    at crates/neuro-io/src/bridge.rs:396
+
+  2026-01-12T18:27:28.695191Z DEBUG neuro_io::bridge: Recommendation received, target_speed: Some(186.0), confidence: 0.8500000238418579
+    at crates/neuro-io/src/bridge.rs:546
+    in neuro_io::bridge::handle_incoming with msg: Recommendation(RecommendationMsg { msg_type: "recommendation", protocol_version: ProtocolVersion { major: 1, minor: 0 }, sequence: 32, target_speed_rpm: Some(186.0), confidence: 0.85, reasoning_hash: "ff9a182b29b9f6b5e84ef29b93f07a0cd7e2d3fcf328565c142a4d64c7883ea2", issued_at_unix_us: 1768242448689379, ttl_ms: 1000, client_unix_us: Some(1768242448689379), auth_token: None }), require_handshake: false, inbound_state: InboundState { last_sequence: Some(31), handshake_seen: true, capabilities: ["recommendation.v1", "auth.hmac-sha256"], client_id: Some("python-cortex") }, reasoning_hash: "ff9a182b29b9f6b5e84ef29b93f07a0cd7e2d3fcf328565c142a4d64c7883ea2"
+
+  2026-01-12T18:27:28.792345Z TRACE neuro_io::bridge: Bridge queued state frame, sequence: 33
+    at crates/neuro-io/src/bridge.rs:344
+
+  2026-01-12T18:27:28.792385Z TRACE neuro_io::bridge: Bridge wrote state bytes, bytes: 249, offset: 249
+    at crates/neuro-io/src/bridge.rs:396
+
+  2026-01-12T18:27:28.799744Z DEBUG neuro_io::bridge: Recommendation received, target_speed: Some(192.0), confidence: 0.8500000238418579
+    at crates/neuro-io/src/bridge.rs:546
+    in neuro_io::bridge::handle_incoming with msg: Recommendation(RecommendationMsg { msg_type: "recommendation", protocol_version: ProtocolVersion { major: 1, minor: 0 }, sequence: 33, target_speed_rpm: Some(192.0), confidence: 0.85, reasoning_hash: "0553d85e0bef48c0cb7ee36f31134a368dee9df66d60314aa1ee3222fa461ca3", issued_at_unix_us: 1768242448792495, ttl_ms: 1000, client_unix_us: Some(1768242448792495), auth_token: None }), require_handshake: false, inbound_state: InboundState { last_sequence: Some(32), handshake_seen: true, capabilities: ["recommendation.v1", "auth.hmac-sha256"], client_id: Some("python-cortex") }, reasoning_hash: "0553d85e0bef48c0cb7ee36f31134a368dee9df66d60314aa1ee3222fa461ca3"
+
+  2026-01-12T18:27:28.895804Z TRACE neuro_io::bridge: Bridge queued state frame, sequence: 34
+    at crates/neuro-io/src/bridge.rs:344
+
+  2026-01-12T18:27:28.895835Z TRACE neuro_io::bridge: Bridge wrote state bytes, bytes: 249, offset: 249
+    at crates/neuro-io/src/bridge.rs:396
+
+  2026-01-12T18:27:28.903388Z DEBUG neuro_io::bridge: Recommendation received, target_speed: Some(199.0), confidence: 0.8500000238418579
+    at crates/neuro-io/src/bridge.rs:546
+    in neuro_io::bridge::handle_incoming with msg: Recommendation(RecommendationMsg { msg_type: "recommendation", protocol_version: ProtocolVersion { major: 1, minor: 0 }, sequence: 34, target_speed_rpm: Some(199.0), confidence: 0.85, reasoning_hash: "b40aa8aa5b2e2e00bb5c3cde53d6063610e8252d067fd44b7a1e5f4e8bb5dc22", issued_at_unix_us: 1768242448895954, ttl_ms: 1000, client_unix_us: Some(1768242448895954), auth_token: None }), require_handshake: false, inbound_state: InboundState { last_sequence: Some(33), handshake_seen: true, capabilities: ["recommendation.v1", "auth.hmac-sha256"], client_id: Some("python-cortex") }, reasoning_hash: "b40aa8aa5b2e2e00bb5c3cde53d6063610e8252d067fd44b7a1e5f4e8bb5dc22"
+
+  2026-01-12T18:27:28.999899Z TRACE neuro_io::bridge: Bridge queued state frame, sequence: 35
+    at crates/neuro-io/src/bridge.rs:344
+
+  2026-01-12T18:27:28.999954Z TRACE neuro_io::bridge: Bridge wrote state bytes, bytes: 249, offset: 249
+    at crates/neuro-io/src/bridge.rs:396
+
+  2026-01-12T18:27:29.006095Z DEBUG neuro_io::bridge: Recommendation received, target_speed: Some(205.0), confidence: 0.8500000238418579
+    at crates/neuro-io/src/bridge.rs:546
+    in neuro_io::bridge::handle_incoming with msg: Recommendation(RecommendationMsg { msg_type: "recommendation", protocol_version: ProtocolVersion { major: 1, minor: 0 }, sequence: 35, target_speed_rpm: Some(205.0), confidence: 0.85, reasoning_hash: "92ee986408113b0e7aef6eaa0bd7794156a29bc80a43a1fe811b113aa02082d2", issued_at_unix_us: 1768242449000094, ttl_ms: 1000, client_unix_us: Some(1768242449000094), auth_token: None }), require_handshake: false, inbound_state: InboundState { last_sequence: Some(34), handshake_seen: true, capabilities: ["recommendation.v1", "auth.hmac-sha256"], client_id: Some("python-cortex") }, reasoning_hash: "92ee986408113b0e7aef6eaa0bd7794156a29bc80a43a1fe811b113aa02082d2"
+
+  2026-01-12T18:27:29.105707Z TRACE neuro_io::bridge: Bridge queued state frame, sequence: 36
+    at crates/neuro-io/src/bridge.rs:344
+
+  2026-01-12T18:27:29.105741Z TRACE neuro_io::bridge: Bridge wrote state bytes, bytes: 249, offset: 249
+    at crates/neuro-io/src/bridge.rs:396
+
+  2026-01-12T18:27:29.112034Z DEBUG neuro_io::bridge: Recommendation received, target_speed: Some(212.0), confidence: 0.8500000238418579
+    at crates/neuro-io/src/bridge.rs:546
+    in neuro_io::bridge::handle_incoming with msg: Recommendation(RecommendationMsg { msg_type: "recommendation", protocol_version: ProtocolVersion { major: 1, minor: 0 }, sequence: 36, target_speed_rpm: Some(212.0), confidence: 0.85, reasoning_hash: "7c3071691ca240ff19fb6551d0f7f0fc093585392435004ac5078e02b40f2158", issued_at_unix_us: 1768242449105866, ttl_ms: 1000, client_unix_us: Some(1768242449105866), auth_token: None }), require_handshake: false, inbound_state: InboundState { last_sequence: Some(35), handshake_seen: true, capabilities: ["recommendation.v1", "auth.hmac-sha256"], client_id: Some("python-cortex") }, reasoning_hash: "7c3071691ca240ff19fb6551d0f7f0fc093585392435004ac5078e02b40f2158"
+
+  2026-01-12T18:27:29.209404Z TRACE neuro_io::bridge: Bridge queued state frame, sequence: 37
+    at crates/neuro-io/src/bridge.rs:344
+
+  2026-01-12T18:27:29.209437Z TRACE neuro_io::bridge: Bridge wrote state bytes, bytes: 249, offset: 249
+    at crates/neuro-io/src/bridge.rs:396
+
+  2026-01-12T18:27:29.215513Z DEBUG neuro_io::bridge: Recommendation received, target_speed: Some(217.0), confidence: 0.8500000238418579
+    at crates/neuro-io/src/bridge.rs:546
+    in neuro_io::bridge::handle_incoming with msg: Recommendation(RecommendationMsg { msg_type: "recommendation", protocol_version: ProtocolVersion { major: 1, minor: 0 }, sequence: 37, target_speed_rpm: Some(217.0), confidence: 0.85, reasoning_hash: "74c24d239cdb93adf12f9c4848092a5aa603e4a5b2814653e97a325271ae0c97", issued_at_unix_us: 1768242449209540, ttl_ms: 1000, client_unix_us: Some(1768242449209540), auth_token: None }), require_handshake: false, inbound_state: InboundState { last_sequence: Some(36), handshake_seen: true, capabilities: ["recommendation.v1", "auth.hmac-sha256"], client_id: Some("python-cortex") }, reasoning_hash: "74c24d239cdb93adf12f9c4848092a5aa603e4a5b2814653e97a325271ae0c97"
+
+  2026-01-12T18:27:29.311915Z TRACE neuro_io::bridge: Bridge queued state frame, sequence: 38
+    at crates/neuro-io/src/bridge.rs:344
+
+  2026-01-12T18:27:29.311953Z TRACE neuro_io::bridge: Bridge wrote state bytes, bytes: 249, offset: 249
+    at crates/neuro-io/src/bridge.rs:396
+
+  2026-01-12T18:27:29.317173Z DEBUG neuro_io::bridge: Recommendation received, target_speed: Some(223.0), confidence: 0.8500000238418579
+    at crates/neuro-io/src/bridge.rs:546
+    in neuro_io::bridge::handle_incoming with msg: Recommendation(RecommendationMsg { msg_type: "recommendation", protocol_version: ProtocolVersion { major: 1, minor: 0 }, sequence: 38, target_speed_rpm: Some(223.0), confidence: 0.85, reasoning_hash: "751092025785782a010f4a5ac8a6909ec872a835641c52eed9a1babff78d81c1", issued_at_unix_us: 1768242449312066, ttl_ms: 1000, client_unix_us: Some(1768242449312066), auth_token: None }), require_handshake: false, inbound_state: InboundState { last_sequence: Some(37), handshake_seen: true, capabilities: ["recommendation.v1", "auth.hmac-sha256"], client_id: Some("python-cortex") }, reasoning_hash: "751092025785782a010f4a5ac8a6909ec872a835641c52eed9a1babff78d81c1"
+
+  2026-01-12T18:27:29.417191Z TRACE neuro_io::bridge: Bridge queued state frame, sequence: 39
+    at crates/neuro-io/src/bridge.rs:344
+
+  2026-01-12T18:27:29.417254Z TRACE neuro_io::bridge: Bridge wrote state bytes, bytes: 249, offset: 249
+    at crates/neuro-io/src/bridge.rs:396
+
+  2026-01-12T18:27:29.422872Z DEBUG neuro_io::bridge: Recommendation received, target_speed: Some(223.0), confidence: 0.8500000238418579
+    at crates/neuro-io/src/bridge.rs:546
+    in neuro_io::bridge::handle_incoming with msg: Recommendation(RecommendationMsg { msg_type: "recommendation", protocol_version: ProtocolVersion { major: 1, minor: 0 }, sequence: 39, target_speed_rpm: Some(223.0), confidence: 0.85, reasoning_hash: "fbe0dc145e7a7ad64a180b1125e34e2f56269209fd2a7bd12975844f38d677b5", issued_at_unix_us: 1768242449417377, ttl_ms: 1000, client_unix_us: Some(1768242449417377), auth_token: None }), require_handshake: false, inbound_state: InboundState { last_sequence: Some(38), handshake_seen: true, capabilities: ["recommendation.v1", "auth.hmac-sha256"], client_id: Some("python-cortex") }, reasoning_hash: "fbe0dc145e7a7ad64a180b1125e34e2f56269209fd2a7bd12975844f38d677b5"
+
+  2026-01-12T18:27:29.521988Z TRACE neuro_io::bridge: Bridge queued state frame, sequence: 40
+    at crates/neuro-io/src/bridge.rs:344
+
+  2026-01-12T18:27:29.522024Z TRACE neuro_io::bridge: Bridge wrote state bytes, bytes: 249, offset: 249
+    at crates/neuro-io/src/bridge.rs:396
+
+  2026-01-12T18:27:29.528144Z DEBUG neuro_io::bridge: Recommendation received, target_speed: Some(228.0), confidence: 0.8500000238418579
+    at crates/neuro-io/src/bridge.rs:546
+    in neuro_io::bridge::handle_incoming with msg: Recommendation(RecommendationMsg { msg_type: "recommendation", protocol_version: ProtocolVersion { major: 1, minor: 0 }, sequence: 40, target_speed_rpm: Some(228.0), confidence: 0.85, reasoning_hash: "381530ef5675be2bdb85a4fb7687658261e890c662b08f664bfd41f68c61080d", issued_at_unix_us: 1768242449522135, ttl_ms: 1000, client_unix_us: Some(1768242449522135), auth_token: None }), require_handshake: false, inbound_state: InboundState { last_sequence: Some(39), handshake_seen: true, capabilities: ["recommendation.v1", "auth.hmac-sha256"], client_id: Some("python-cortex") }, reasoning_hash: "381530ef5675be2bdb85a4fb7687658261e890c662b08f664bfd41f68c61080d"
+
+  2026-01-12T18:27:29.622831Z TRACE neuro_io::bridge: Bridge queued state frame, sequence: 41
+    at crates/neuro-io/src/bridge.rs:344
+
+  2026-01-12T18:27:29.622857Z TRACE neuro_io::bridge: Bridge wrote state bytes, bytes: 249, offset: 249
+    at crates/neuro-io/src/bridge.rs:396
+
+  2026-01-12T18:27:29.628884Z DEBUG neuro_io::bridge: Recommendation received, target_speed: Some(232.0), confidence: 0.8500000238418579
+    at crates/neuro-io/src/bridge.rs:546
+    in neuro_io::bridge::handle_incoming with msg: Recommendation(RecommendationMsg { msg_type: "recommendation", protocol_version: ProtocolVersion { major: 1, minor: 0 }, sequence: 41, target_speed_rpm: Some(232.0), confidence: 0.85, reasoning_hash: "99680578e6f1852605abfdcde20cd1ed72bf9d3e80bca11a9e8176caf5da5d31", issued_at_unix_us: 1768242449622969, ttl_ms: 1000, client_unix_us: Some(1768242449622969), auth_token: None }), require_handshake: false, inbound_state: InboundState { last_sequence: Some(40), handshake_seen: true, capabilities: ["recommendation.v1", "auth.hmac-sha256"], client_id: Some("python-cortex") }, reasoning_hash: "99680578e6f1852605abfdcde20cd1ed72bf9d3e80bca11a9e8176caf5da5d31"
+
+  2026-01-12T18:27:29.725994Z TRACE neuro_io::bridge: Bridge queued state frame, sequence: 42
+    at crates/neuro-io/src/bridge.rs:344
+
+  2026-01-12T18:27:29.726026Z TRACE neuro_io::bridge: Bridge wrote state bytes, bytes: 249, offset: 249
+    at crates/neuro-io/src/bridge.rs:396
+
+  2026-01-12T18:27:29.732507Z DEBUG neuro_io::bridge: Recommendation received, target_speed: Some(238.0), confidence: 0.8500000238418579
+    at crates/neuro-io/src/bridge.rs:546
+    in neuro_io::bridge::handle_incoming with msg: Recommendation(RecommendationMsg { msg_type: "recommendation", protocol_version: ProtocolVersion { major: 1, minor: 0 }, sequence: 42, target_speed_rpm: Some(238.0), confidence: 0.85, reasoning_hash: "c5a897cb0cf095c615055f9948256be7a9aecb6b43c1c53d976092d989e3c312", issued_at_unix_us: 1768242449726123, ttl_ms: 1000, client_unix_us: Some(1768242449726123), auth_token: None }), require_handshake: false, inbound_state: InboundState { last_sequence: Some(41), handshake_seen: true, capabilities: ["recommendation.v1", "auth.hmac-sha256"], client_id: Some("python-cortex") }, reasoning_hash: "c5a897cb0cf095c615055f9948256be7a9aecb6b43c1c53d976092d989e3c312"
+
+  2026-01-12T18:27:29.826892Z TRACE neuro_io::bridge: Bridge queued state frame, sequence: 43
+    at crates/neuro-io/src/bridge.rs:344
+
+  2026-01-12T18:27:29.826926Z TRACE neuro_io::bridge: Bridge wrote state bytes, bytes: 249, offset: 249
+    at crates/neuro-io/src/bridge.rs:396
+
+  2026-01-12T18:27:29.832666Z DEBUG neuro_io::bridge: Recommendation received, target_speed: Some(244.0), confidence: 0.8500000238418579
+    at crates/neuro-io/src/bridge.rs:546
+    in neuro_io::bridge::handle_incoming with msg: Recommendation(RecommendationMsg { msg_type: "recommendation", protocol_version: ProtocolVersion { major: 1, minor: 0 }, sequence: 43, target_speed_rpm: Some(244.0), confidence: 0.85, reasoning_hash: "5da8b8c912a50483a8cfc5c31863508e3cfa504637aeb4264a00cde20fd71f0b", issued_at_unix_us: 1768242449827025, ttl_ms: 1000, client_unix_us: Some(1768242449827025), auth_token: None }), require_handshake: false, inbound_state: InboundState { last_sequence: Some(42), handshake_seen: true, capabilities: ["recommendation.v1", "auth.hmac-sha256"], client_id: Some("python-cortex") }, reasoning_hash: "5da8b8c912a50483a8cfc5c31863508e3cfa504637aeb4264a00cde20fd71f0b"
+
+  2026-01-12T18:27:29.932882Z TRACE neuro_io::bridge: Bridge queued state frame, sequence: 44
+    at crates/neuro-io/src/bridge.rs:344
+
+  2026-01-12T18:27:29.932916Z TRACE neuro_io::bridge: Bridge wrote state bytes, bytes: 249, offset: 249
+    at crates/neuro-io/src/bridge.rs:396
+
+  2026-01-12T18:27:29.938017Z DEBUG neuro_io::bridge: Recommendation received, target_speed: Some(249.0), confidence: 0.8500000238418579
+    at crates/neuro-io/src/bridge.rs:546
+    in neuro_io::bridge::handle_incoming with msg: Recommendation(RecommendationMsg { msg_type: "recommendation", protocol_version: ProtocolVersion { major: 1, minor: 0 }, sequence: 44, target_speed_rpm: Some(249.0), confidence: 0.85, reasoning_hash: "c260a27c295e979c3fc5efe527955889ec538f41845aa2c18a95ede0b02c262f", issued_at_unix_us: 1768242449933016, ttl_ms: 1000, client_unix_us: Some(1768242449933016), auth_token: None }), require_handshake: false, inbound_state: InboundState { last_sequence: Some(43), handshake_seen: true, capabilities: ["recommendation.v1", "auth.hmac-sha256"], client_id: Some("python-cortex") }, reasoning_hash: "c260a27c295e979c3fc5efe527955889ec538f41845aa2c18a95ede0b02c262f"
+
+  2026-01-12T18:27:30.036971Z TRACE neuro_io::bridge: Bridge queued state frame, sequence: 45
+    at crates/neuro-io/src/bridge.rs:344
+
+  2026-01-12T18:27:30.036998Z TRACE neuro_io::bridge: Bridge wrote state bytes, bytes: 249, offset: 249
+    at crates/neuro-io/src/bridge.rs:396
+
+  2026-01-12T18:27:30.043805Z DEBUG neuro_io::bridge: Recommendation received, target_speed: Some(256.0), confidence: 0.8500000238418579
+    at crates/neuro-io/src/bridge.rs:546
+    in neuro_io::bridge::handle_incoming with msg: Recommendation(RecommendationMsg { msg_type: "recommendation", protocol_version: ProtocolVersion { major: 1, minor: 0 }, sequence: 45, target_speed_rpm: Some(256.0), confidence: 0.85, reasoning_hash: "ecbcf4b84c88b7470cdf5022154e85d97d676630185ffb7c47e8a938574b6c98", issued_at_unix_us: 1768242450037104, ttl_ms: 1000, client_unix_us: Some(1768242450037104), auth_token: None }), require_handshake: false, inbound_state: InboundState { last_sequence: Some(44), handshake_seen: true, capabilities: ["recommendation.v1", "auth.hmac-sha256"], client_id: Some("python-cortex") }, reasoning_hash: "ecbcf4b84c88b7470cdf5022154e85d97d676630185ffb7c47e8a938574b6c98"
+
+  2026-01-12T18:27:30.141765Z TRACE neuro_io::bridge: Bridge queued state frame, sequence: 46
+    at crates/neuro-io/src/bridge.rs:344
+
+  2026-01-12T18:27:30.141817Z TRACE neuro_io::bridge: Bridge wrote state bytes, bytes: 249, offset: 249
+    at crates/neuro-io/src/bridge.rs:396
+
+  2026-01-12T18:27:30.148636Z DEBUG neuro_io::bridge: Recommendation received, target_speed: Some(262.0), confidence: 0.8500000238418579
+    at crates/neuro-io/src/bridge.rs:546
+    in neuro_io::bridge::handle_incoming with msg: Recommendation(RecommendationMsg { msg_type: "recommendation", protocol_version: ProtocolVersion { major: 1, minor: 0 }, sequence: 46, target_speed_rpm: Some(262.0), confidence: 0.85, reasoning_hash: "6888690253924a84a0db3b48c4db251b8867269f927185f1dfc6c7014829dbb1", issued_at_unix_us: 1768242450141995, ttl_ms: 1000, client_unix_us: Some(1768242450141995), auth_token: None }), require_handshake: false, inbound_state: InboundState { last_sequence: Some(45), handshake_seen: true, capabilities: ["recommendation.v1", "auth.hmac-sha256"], client_id: Some("python-cortex") }, reasoning_hash: "6888690253924a84a0db3b48c4db251b8867269f927185f1dfc6c7014829dbb1"
+
+  2026-01-12T18:27:30.244687Z TRACE neuro_io::bridge: Bridge queued state frame, sequence: 47
+    at crates/neuro-io/src/bridge.rs:344
+
+  2026-01-12T18:27:30.244722Z TRACE neuro_io::bridge: Bridge wrote state bytes, bytes: 249, offset: 249
+    at crates/neuro-io/src/bridge.rs:396
+
+  2026-01-12T18:27:30.252276Z DEBUG neuro_io::bridge: Recommendation received, target_speed: Some(265.0), confidence: 0.8500000238418579
+    at crates/neuro-io/src/bridge.rs:546
+    in neuro_io::bridge::handle_incoming with msg: Recommendation(RecommendationMsg { msg_type: "recommendation", protocol_version: ProtocolVersion { major: 1, minor: 0 }, sequence: 47, target_speed_rpm: Some(265.0), confidence: 0.85, reasoning_hash: "d69bc6142308148af3b119d18580efcfdf61ea4f607d610386da77584cf834f3", issued_at_unix_us: 1768242450244830, ttl_ms: 1000, client_unix_us: Some(1768242450244830), auth_token: None }), require_handshake: false, inbound_state: InboundState { last_sequence: Some(46), handshake_seen: true, capabilities: ["recommendation.v1", "auth.hmac-sha256"], client_id: Some("python-cortex") }, reasoning_hash: "d69bc6142308148af3b119d18580efcfdf61ea4f607d610386da77584cf834f3"
+
+  2026-01-12T18:27:30.347259Z TRACE neuro_io::bridge: Bridge queued state frame, sequence: 48
+    at crates/neuro-io/src/bridge.rs:344
+
+  2026-01-12T18:27:30.347298Z TRACE neuro_io::bridge: Bridge wrote state bytes, bytes: 249, offset: 249
+    at crates/neuro-io/src/bridge.rs:396
+
+  2026-01-12T18:27:30.352899Z DEBUG neuro_io::bridge: Recommendation received, target_speed: Some(271.0), confidence: 0.8500000238418579
+    at crates/neuro-io/src/bridge.rs:546
+    in neuro_io::bridge::handle_incoming with msg: Recommendation(RecommendationMsg { msg_type: "recommendation", protocol_version: ProtocolVersion { major: 1, minor: 0 }, sequence: 48, target_speed_rpm: Some(271.0), confidence: 0.85, reasoning_hash: "b1745768f6c0795f2763e861c71cce08cb8ee2f0372dc50770e0ff3725775e62", issued_at_unix_us: 1768242450347432, ttl_ms: 1000, client_unix_us: Some(1768242450347432), auth_token: None }), require_handshake: false, inbound_state: InboundState { last_sequence: Some(47), handshake_seen: true, capabilities: ["recommendation.v1", "auth.hmac-sha256"], client_id: Some("python-cortex") }, reasoning_hash: "b1745768f6c0795f2763e861c71cce08cb8ee2f0372dc50770e0ff3725775e62"
+
+  2026-01-12T18:27:30.449445Z TRACE neuro_io::bridge: Bridge queued state frame, sequence: 49
+    at crates/neuro-io/src/bridge.rs:344
+
+  2026-01-12T18:27:30.449485Z TRACE neuro_io::bridge: Bridge wrote state bytes, bytes: 249, offset: 249
+    at crates/neuro-io/src/bridge.rs:396
+
+  2026-01-12T18:27:30.454901Z DEBUG neuro_io::bridge: Recommendation received, target_speed: Some(276.0), confidence: 0.8500000238418579
+    at crates/neuro-io/src/bridge.rs:546
+    in neuro_io::bridge::handle_incoming with msg: Recommendation(RecommendationMsg { msg_type: "recommendation", protocol_version: ProtocolVersion { major: 1, minor: 0 }, sequence: 49, target_speed_rpm: Some(276.0), confidence: 0.85, reasoning_hash: "52762211fda50e9b26f83873d29e94442f751f68169a65b0b8dac2572f4cc7be", issued_at_unix_us: 1768242450449640, ttl_ms: 1000, client_unix_us: Some(1768242450449640), auth_token: None }), require_handshake: false, inbound_state: InboundState { last_sequence: Some(48), handshake_seen: true, capabilities: ["recommendation.v1", "auth.hmac-sha256"], client_id: Some("python-cortex") }, reasoning_hash: "52762211fda50e9b26f83873d29e94442f751f68169a65b0b8dac2572f4cc7be"
+
+  2026-01-12T18:27:30.552901Z TRACE neuro_io::bridge: Bridge queued state frame, sequence: 50
+    at crates/neuro-io/src/bridge.rs:344
+
+  2026-01-12T18:27:30.552950Z TRACE neuro_io::bridge: Bridge wrote state bytes, bytes: 249, offset: 249
+    at crates/neuro-io/src/bridge.rs:396
+
+  2026-01-12T18:27:30.560510Z DEBUG neuro_io::bridge: Recommendation received, target_speed: Some(282.0), confidence: 0.8500000238418579
+    at crates/neuro-io/src/bridge.rs:546
+    in neuro_io::bridge::handle_incoming with msg: Recommendation(RecommendationMsg { msg_type: "recommendation", protocol_version: ProtocolVersion { major: 1, minor: 0 }, sequence: 50, target_speed_rpm: Some(282.0), confidence: 0.85, reasoning_hash: "592dae07de4122e0d5604cbd4ba3a5bcfd4a1d4a6fa1860834061b478db2f8af", issued_at_unix_us: 1768242450553066, ttl_ms: 1000, client_unix_us: Some(1768242450553066), auth_token: None }), require_handshake: false, inbound_state: InboundState { last_sequence: Some(49), handshake_seen: true, capabilities: ["recommendation.v1", "auth.hmac-sha256"], client_id: Some("python-cortex") }, reasoning_hash: "592dae07de4122e0d5604cbd4ba3a5bcfd4a1d4a6fa1860834061b478db2f8af"
+
+  2026-01-12T18:27:30.655848Z TRACE neuro_io::bridge: Bridge queued state frame, sequence: 51
+    at crates/neuro-io/src/bridge.rs:344
+
+  2026-01-12T18:27:30.655892Z TRACE neuro_io::bridge: Bridge wrote state bytes, bytes: 249, offset: 249
+    at crates/neuro-io/src/bridge.rs:396
+
+  2026-01-12T18:27:30.661779Z DEBUG neuro_io::bridge: Recommendation received, target_speed: Some(288.0), confidence: 0.8500000238418579
+    at crates/neuro-io/src/bridge.rs:546
+    in neuro_io::bridge::handle_incoming with msg: Recommendation(RecommendationMsg { msg_type: "recommendation", protocol_version: ProtocolVersion { major: 1, minor: 0 }, sequence: 51, target_speed_rpm: Some(288.0), confidence: 0.85, reasoning_hash: "d6046731b86df7a5f7830a953cedcf857aa42a0daca7d94c4a4a7b679136a0ba", issued_at_unix_us: 1768242450656019, ttl_ms: 1000, client_unix_us: Some(1768242450656019), auth_token: None }), require_handshake: false, inbound_state: InboundState { last_sequence: Some(50), handshake_seen: true, capabilities: ["recommendation.v1", "auth.hmac-sha256"], client_id: Some("python-cortex") }, reasoning_hash: "d6046731b86df7a5f7830a953cedcf857aa42a0daca7d94c4a4a7b679136a0ba"
+
+  2026-01-12T18:27:30.760622Z TRACE neuro_io::bridge: Bridge queued state frame, sequence: 52
+    at crates/neuro-io/src/bridge.rs:344
+
+  2026-01-12T18:27:30.760652Z TRACE neuro_io::bridge: Bridge wrote state bytes, bytes: 249, offset: 249
+    at crates/neuro-io/src/bridge.rs:396
+
+  2026-01-12T18:27:30.766370Z DEBUG neuro_io::bridge: Recommendation received, target_speed: Some(294.0), confidence: 0.8500000238418579
+    at crates/neuro-io/src/bridge.rs:546
+    in neuro_io::bridge::handle_incoming with msg: Recommendation(RecommendationMsg { msg_type: "recommendation", protocol_version: ProtocolVersion { major: 1, minor: 0 }, sequence: 52, target_speed_rpm: Some(294.0), confidence: 0.85, reasoning_hash: "19eb468df6e4e4ff25472365fe3194ce22ecadb4786c352404f9e27388e48d49", issued_at_unix_us: 1768242450760809, ttl_ms: 1000, client_unix_us: Some(1768242450760809), auth_token: None }), require_handshake: false, inbound_state: InboundState { last_sequence: Some(51), handshake_seen: true, capabilities: ["recommendation.v1", "auth.hmac-sha256"], client_id: Some("python-cortex") }, reasoning_hash: "19eb468df6e4e4ff25472365fe3194ce22ecadb4786c352404f9e27388e48d49"
+
+  2026-01-12T18:27:30.865715Z TRACE neuro_io::bridge: Bridge queued state frame, sequence: 53
+    at crates/neuro-io/src/bridge.rs:344
+
+  2026-01-12T18:27:30.865750Z TRACE neuro_io::bridge: Bridge wrote state bytes, bytes: 249, offset: 249
+    at crates/neuro-io/src/bridge.rs:396
+
+  2026-01-12T18:27:30.873135Z DEBUG neuro_io::bridge: Recommendation received, target_speed: Some(301.0), confidence: 0.8500000238418579
+    at crates/neuro-io/src/bridge.rs:546
+    in neuro_io::bridge::handle_incoming with msg: Recommendation(RecommendationMsg { msg_type: "recommendation", protocol_version: ProtocolVersion { major: 1, minor: 0 }, sequence: 53, target_speed_rpm: Some(301.0), confidence: 0.85, reasoning_hash: "da09d589feb44f698da2b9bdfbbd89aeeb98487d9cc6126e85bbbeb73cdc2744", issued_at_unix_us: 1768242450865861, ttl_ms: 1000, client_unix_us: Some(1768242450865861), auth_token: None }), require_handshake: false, inbound_state: InboundState { last_sequence: Some(52), handshake_seen: true, capabilities: ["recommendation.v1", "auth.hmac-sha256"], client_id: Some("python-cortex") }, reasoning_hash: "da09d589feb44f698da2b9bdfbbd89aeeb98487d9cc6126e85bbbeb73cdc2744"
+
+  2026-01-12T18:27:30.967641Z TRACE neuro_io::bridge: Bridge queued state frame, sequence: 54
+    at crates/neuro-io/src/bridge.rs:344
+
+  2026-01-12T18:27:30.967673Z TRACE neuro_io::bridge: Bridge wrote state bytes, bytes: 249, offset: 249
+    at crates/neuro-io/src/bridge.rs:396
+
+  2026-01-12T18:27:30.973142Z DEBUG neuro_io::bridge: Recommendation received, target_speed: Some(309.0), confidence: 0.8500000238418579
+    at crates/neuro-io/src/bridge.rs:546
+    in neuro_io::bridge::handle_incoming with msg: Recommendation(RecommendationMsg { msg_type: "recommendation", protocol_version: ProtocolVersion { major: 1, minor: 0 }, sequence: 54, target_speed_rpm: Some(309.0), confidence: 0.85, reasoning_hash: "2701e0a1df5490b9ec760abdce74c6c42b7c2780599a775c70578a1850d5e315", issued_at_unix_us: 1768242450967811, ttl_ms: 1000, client_unix_us: Some(1768242450967811), auth_token: None }), require_handshake: false, inbound_state: InboundState { last_sequence: Some(53), handshake_seen: true, capabilities: ["recommendation.v1", "auth.hmac-sha256"], client_id: Some("python-cortex") }, reasoning_hash: "2701e0a1df5490b9ec760abdce74c6c42b7c2780599a775c70578a1850d5e315"
+
+  2026-01-12T18:27:31.069204Z TRACE neuro_io::bridge: Bridge queued state frame, sequence: 55
+    at crates/neuro-io/src/bridge.rs:344
+
+  2026-01-12T18:27:31.069237Z TRACE neuro_io::bridge: Bridge wrote state bytes, bytes: 248, offset: 248
+    at crates/neuro-io/src/bridge.rs:396
+
+  2026-01-12T18:27:31.075482Z DEBUG neuro_io::bridge: Recommendation received, target_speed: Some(313.0), confidence: 0.8500000238418579
+    at crates/neuro-io/src/bridge.rs:546
+    in neuro_io::bridge::handle_incoming with msg: Recommendation(RecommendationMsg { msg_type: "recommendation", protocol_version: ProtocolVersion { major: 1, minor: 0 }, sequence: 55, target_speed_rpm: Some(313.0), confidence: 0.85, reasoning_hash: "7e17a9b2f2362d403d6f08225f82c09939beb7b1a757b3cab670c8c8134eeba8", issued_at_unix_us: 1768242451069363, ttl_ms: 1000, client_unix_us: Some(1768242451069363), auth_token: None }), require_handshake: false, inbound_state: InboundState { last_sequence: Some(54), handshake_seen: true, capabilities: ["recommendation.v1", "auth.hmac-sha256"], client_id: Some("python-cortex") }, reasoning_hash: "7e17a9b2f2362d403d6f08225f82c09939beb7b1a757b3cab670c8c8134eeba8"
+
+  2026-01-12T18:27:31.173215Z TRACE neuro_io::bridge: Bridge queued state frame, sequence: 56
+    at crates/neuro-io/src/bridge.rs:344
+
+  2026-01-12T18:27:31.173254Z TRACE neuro_io::bridge: Bridge wrote state bytes, bytes: 249, offset: 249
+    at crates/neuro-io/src/bridge.rs:396
+
+  2026-01-12T18:27:31.180805Z DEBUG neuro_io::bridge: Recommendation received, target_speed: Some(317.0), confidence: 0.8500000238418579
+    at crates/neuro-io/src/bridge.rs:546
+    in neuro_io::bridge::handle_incoming with msg: Recommendation(RecommendationMsg { msg_type: "recommendation", protocol_version: ProtocolVersion { major: 1, minor: 0 }, sequence: 56, target_speed_rpm: Some(317.0), confidence: 0.85, reasoning_hash: "0fa7d22605b2782f8cf0d3db2f0e76c25e32bf96448253fb90ace59c7d91d51b", issued_at_unix_us: 1768242451173368, ttl_ms: 1000, client_unix_us: Some(1768242451173368), auth_token: None }), require_handshake: false, inbound_state: InboundState { last_sequence: Some(55), handshake_seen: true, capabilities: ["recommendation.v1", "auth.hmac-sha256"], client_id: Some("python-cortex") }, reasoning_hash: "0fa7d22605b2782f8cf0d3db2f0e76c25e32bf96448253fb90ace59c7d91d51b"
+
+  2026-01-12T18:27:31.276780Z TRACE neuro_io::bridge: Bridge queued state frame, sequence: 57
+    at crates/neuro-io/src/bridge.rs:344
+
+  2026-01-12T18:27:31.276814Z TRACE neuro_io::bridge: Bridge wrote state bytes, bytes: 249, offset: 249
+    at crates/neuro-io/src/bridge.rs:396
+
+  2026-01-12T18:27:31.282831Z DEBUG neuro_io::bridge: Recommendation received, target_speed: Some(326.0), confidence: 0.8500000238418579
+    at crates/neuro-io/src/bridge.rs:546
+    in neuro_io::bridge::handle_incoming with msg: Recommendation(RecommendationMsg { msg_type: "recommendation", protocol_version: ProtocolVersion { major: 1, minor: 0 }, sequence: 57, target_speed_rpm: Some(326.0), confidence: 0.85, reasoning_hash: "07cb4bc585c6a26d8a9705657c267cc28c80934472229ded8f01f2c9455746d4", issued_at_unix_us: 1768242451276938, ttl_ms: 1000, client_unix_us: Some(1768242451276938), auth_token: None }), require_handshake: false, inbound_state: InboundState { last_sequence: Some(56), handshake_seen: true, capabilities: ["recommendation.v1", "auth.hmac-sha256"], client_id: Some("python-cortex") }, reasoning_hash: "07cb4bc585c6a26d8a9705657c267cc28c80934472229ded8f01f2c9455746d4"
+
+  2026-01-12T18:27:31.383110Z TRACE neuro_io::bridge: Bridge queued state frame, sequence: 58
+    at crates/neuro-io/src/bridge.rs:344
+
+  2026-01-12T18:27:31.383142Z TRACE neuro_io::bridge: Bridge wrote state bytes, bytes: 249, offset: 249
+    at crates/neuro-io/src/bridge.rs:396
+
+  2026-01-12T18:27:31.390699Z DEBUG neuro_io::bridge: Recommendation received, target_speed: Some(332.0), confidence: 0.8500000238418579
+    at crates/neuro-io/src/bridge.rs:546
+    in neuro_io::bridge::handle_incoming with msg: Recommendation(RecommendationMsg { msg_type: "recommendation", protocol_version: ProtocolVersion { major: 1, minor: 0 }, sequence: 58, target_speed_rpm: Some(332.0), confidence: 0.85, reasoning_hash: "7ca1cc285eaf6764860e614400ffdda82b98d598c509808bed5ebe21ac132a69", issued_at_unix_us: 1768242451383245, ttl_ms: 1000, client_unix_us: Some(1768242451383245), auth_token: None }), require_handshake: false, inbound_state: InboundState { last_sequence: Some(57), handshake_seen: true, capabilities: ["recommendation.v1", "auth.hmac-sha256"], client_id: Some("python-cortex") }, reasoning_hash: "7ca1cc285eaf6764860e614400ffdda82b98d598c509808bed5ebe21ac132a69"
+
+  2026-01-12T18:27:31.486618Z TRACE neuro_io::bridge: Bridge queued state frame, sequence: 59
+    at crates/neuro-io/src/bridge.rs:344
+
+  2026-01-12T18:27:31.486668Z TRACE neuro_io::bridge: Bridge wrote state bytes, bytes: 249, offset: 249
+    at crates/neuro-io/src/bridge.rs:396
+
+  2026-01-12T18:27:31.492376Z DEBUG neuro_io::bridge: Recommendation received, target_speed: Some(337.0), confidence: 0.8500000238418579
+    at crates/neuro-io/src/bridge.rs:546
+    in neuro_io::bridge::handle_incoming with msg: Recommendation(RecommendationMsg { msg_type: "recommendation", protocol_version: ProtocolVersion { major: 1, minor: 0 }, sequence: 59, target_speed_rpm: Some(337.0), confidence: 0.85, reasoning_hash: "7507f4ef61ebfe3fd05a29bb8ce60b849617c6dfecfd7eaacf6d7b0474b731ed", issued_at_unix_us: 1768242451486774, ttl_ms: 1000, client_unix_us: Some(1768242451486774), auth_token: None }), require_handshake: false, inbound_state: InboundState { last_sequence: Some(58), handshake_seen: true, capabilities: ["recommendation.v1", "auth.hmac-sha256"], client_id: Some("python-cortex") }, reasoning_hash: "7507f4ef61ebfe3fd05a29bb8ce60b849617c6dfecfd7eaacf6d7b0474b731ed"
+
+  2026-01-12T18:27:31.587536Z TRACE neuro_io::bridge: Bridge queued state frame, sequence: 60
+    at crates/neuro-io/src/bridge.rs:344
+
+  2026-01-12T18:27:31.587578Z TRACE neuro_io::bridge: Bridge wrote state bytes, bytes: 248, offset: 248
+    at crates/neuro-io/src/bridge.rs:396
+
+  2026-01-12T18:27:31.593000Z DEBUG neuro_io::bridge: Recommendation received, target_speed: Some(344.0), confidence: 0.8500000238418579
+    at crates/neuro-io/src/bridge.rs:546
+    in neuro_io::bridge::handle_incoming with msg: Recommendation(RecommendationMsg { msg_type: "recommendation", protocol_version: ProtocolVersion { major: 1, minor: 0 }, sequence: 60, target_speed_rpm: Some(344.0), confidence: 0.85, reasoning_hash: "7d31fef6193ae6ecab6cb44729d05f89a93e9ab2e708692fcbe99a67d53e1cb3", issued_at_unix_us: 1768242451587693, ttl_ms: 1000, client_unix_us: Some(1768242451587693), auth_token: None }), require_handshake: false, inbound_state: InboundState { last_sequence: Some(59), handshake_seen: true, capabilities: ["recommendation.v1", "auth.hmac-sha256"], client_id: Some("python-cortex") }, reasoning_hash: "7d31fef6193ae6ecab6cb44729d05f89a93e9ab2e708692fcbe99a67d53e1cb3"
+
+  2026-01-12T18:27:31.691894Z TRACE neuro_io::bridge: Bridge queued state frame, sequence: 61
+    at crates/neuro-io/src/bridge.rs:344
+
+  2026-01-12T18:27:31.691926Z TRACE neuro_io::bridge: Bridge wrote state bytes, bytes: 249, offset: 249
+    at crates/neuro-io/src/bridge.rs:396
+
+  2026-01-12T18:27:31.699477Z DEBUG neuro_io::bridge: Recommendation received, target_speed: Some(348.0), confidence: 0.8500000238418579
+    at crates/neuro-io/src/bridge.rs:546
+    in neuro_io::bridge::handle_incoming with msg: Recommendation(RecommendationMsg { msg_type: "recommendation", protocol_version: ProtocolVersion { major: 1, minor: 0 }, sequence: 61, target_speed_rpm: Some(348.0), confidence: 0.85, reasoning_hash: "e04b5de73582ea209c9d50c365e499a90491bec57a378c0a56784505d849783a", issued_at_unix_us: 1768242451692056, ttl_ms: 1000, client_unix_us: Some(1768242451692056), auth_token: None }), require_handshake: false, inbound_state: InboundState { last_sequence: Some(60), handshake_seen: true, capabilities: ["recommendation.v1", "auth.hmac-sha256"], client_id: Some("python-cortex") }, reasoning_hash: "e04b5de73582ea209c9d50c365e499a90491bec57a378c0a56784505d849783a"
+
+  2026-01-12T18:27:31.793829Z TRACE neuro_io::bridge: Bridge queued state frame, sequence: 62
+    at crates/neuro-io/src/bridge.rs:344
+
+  2026-01-12T18:27:31.793864Z TRACE neuro_io::bridge: Bridge wrote state bytes, bytes: 249, offset: 249
+    at crates/neuro-io/src/bridge.rs:396
+
+  2026-01-12T18:27:31.799086Z DEBUG neuro_io::bridge: Recommendation received, target_speed: Some(354.0), confidence: 0.8500000238418579
+    at crates/neuro-io/src/bridge.rs:546
+    in neuro_io::bridge::handle_incoming with msg: Recommendation(RecommendationMsg { msg_type: "recommendation", protocol_version: ProtocolVersion { major: 1, minor: 0 }, sequence: 62, target_speed_rpm: Some(354.0), confidence: 0.85, reasoning_hash: "a05f3ea8d44ce2d106e1d9d9583c3b8c641fc697874e2e5a8892dd775e8d8686", issued_at_unix_us: 1768242451793975, ttl_ms: 1000, client_unix_us: Some(1768242451793975), auth_token: None }), require_handshake: false, inbound_state: InboundState { last_sequence: Some(61), handshake_seen: true, capabilities: ["recommendation.v1", "auth.hmac-sha256"], client_id: Some("python-cortex") }, reasoning_hash: "a05f3ea8d44ce2d106e1d9d9583c3b8c641fc697874e2e5a8892dd775e8d8686"
+
+  2026-01-12T18:27:31.894417Z TRACE neuro_io::bridge: Bridge queued state frame, sequence: 63
+    at crates/neuro-io/src/bridge.rs:344
+
+  2026-01-12T18:27:31.894448Z TRACE neuro_io::bridge: Bridge wrote state bytes, bytes: 249, offset: 249
+    at crates/neuro-io/src/bridge.rs:396
+
+  2026-01-12T18:27:31.899727Z DEBUG neuro_io::bridge: Recommendation received, target_speed: Some(358.0), confidence: 0.8500000238418579
+    at crates/neuro-io/src/bridge.rs:546
+    in neuro_io::bridge::handle_incoming with msg: Recommendation(RecommendationMsg { msg_type: "recommendation", protocol_version: ProtocolVersion { major: 1, minor: 0 }, sequence: 63, target_speed_rpm: Some(358.0), confidence: 0.85, reasoning_hash: "24231966398ca3ffb12508930a62ce651d43993e7c9f03619a03828e969835cf", issued_at_unix_us: 1768242451894555, ttl_ms: 1000, client_unix_us: Some(1768242451894555), auth_token: None }), require_handshake: false, inbound_state: InboundState { last_sequence: Some(62), handshake_seen: true, capabilities: ["recommendation.v1", "auth.hmac-sha256"], client_id: Some("python-cortex") }, reasoning_hash: "24231966398ca3ffb12508930a62ce651d43993e7c9f03619a03828e969835cf"
+
+  2026-01-12T18:27:31.998556Z TRACE neuro_io::bridge: Bridge queued state frame, sequence: 64
+    at crates/neuro-io/src/bridge.rs:344
+
+  2026-01-12T18:27:31.998589Z TRACE neuro_io::bridge: Bridge wrote state bytes, bytes: 249, offset: 249
+    at crates/neuro-io/src/bridge.rs:396
+
+  2026-01-12T18:27:32.004855Z DEBUG neuro_io::bridge: Recommendation received, target_speed: Some(366.0), confidence: 0.8500000238418579
+    at crates/neuro-io/src/bridge.rs:546
+    in neuro_io::bridge::handle_incoming with msg: Recommendation(RecommendationMsg { msg_type: "recommendation", protocol_version: ProtocolVersion { major: 1, minor: 0 }, sequence: 64, target_speed_rpm: Some(366.0), confidence: 0.85, reasoning_hash: "d50533f53a8de6590961bdc27ee750a12da98c34101382248f114d1ba2f2650f", issued_at_unix_us: 1768242451998703, ttl_ms: 1000, client_unix_us: Some(1768242451998703), auth_token: None }), require_handshake: false, inbound_state: InboundState { last_sequence: Some(63), handshake_seen: true, capabilities: ["recommendation.v1", "auth.hmac-sha256"], client_id: Some("python-cortex") }, reasoning_hash: "d50533f53a8de6590961bdc27ee750a12da98c34101382248f114d1ba2f2650f"
+
+  2026-01-12T18:27:32.100441Z TRACE neuro_io::bridge: Bridge queued state frame, sequence: 65
+    at crates/neuro-io/src/bridge.rs:344
+
+  2026-01-12T18:27:32.100477Z TRACE neuro_io::bridge: Bridge wrote state bytes, bytes: 248, offset: 248
+    at crates/neuro-io/src/bridge.rs:396
+
+  2026-01-12T18:27:32.106572Z DEBUG neuro_io::bridge: Recommendation received, target_speed: Some(371.0), confidence: 0.8500000238418579
+    at crates/neuro-io/src/bridge.rs:546
+    in neuro_io::bridge::handle_incoming with msg: Recommendation(RecommendationMsg { msg_type: "recommendation", protocol_version: ProtocolVersion { major: 1, minor: 0 }, sequence: 65, target_speed_rpm: Some(371.0), confidence: 0.85, reasoning_hash: "6a16d958a9351a341819b61fd4887eefa13bf30d702ae5598321eb59a8fb6bf1", issued_at_unix_us: 1768242452100590, ttl_ms: 1000, client_unix_us: Some(1768242452100590), auth_token: None }), require_handshake: false, inbound_state: InboundState { last_sequence: Some(64), handshake_seen: true, capabilities: ["recommendation.v1", "auth.hmac-sha256"], client_id: Some("python-cortex") }, reasoning_hash: "6a16d958a9351a341819b61fd4887eefa13bf30d702ae5598321eb59a8fb6bf1"
+
+  2026-01-12T18:27:32.205979Z TRACE neuro_io::bridge: Bridge queued state frame, sequence: 66
+    at crates/neuro-io/src/bridge.rs:344
+
+  2026-01-12T18:27:32.206007Z TRACE neuro_io::bridge: Bridge wrote state bytes, bytes: 249, offset: 249
+    at crates/neuro-io/src/bridge.rs:396
+
+  2026-01-12T18:27:32.211934Z DEBUG neuro_io::bridge: Recommendation received, target_speed: Some(376.0), confidence: 0.8500000238418579
+    at crates/neuro-io/src/bridge.rs:546
+    in neuro_io::bridge::handle_incoming with msg: Recommendation(RecommendationMsg { msg_type: "recommendation", protocol_version: ProtocolVersion { major: 1, minor: 0 }, sequence: 66, target_speed_rpm: Some(376.0), confidence: 0.85, reasoning_hash: "a7b1fa8709aa681bbdc3307e3825e30446e812ad46cd96dd188fe764838bb808", issued_at_unix_us: 1768242452206116, ttl_ms: 1000, client_unix_us: Some(1768242452206116), auth_token: None }), require_handshake: false, inbound_state: InboundState { last_sequence: Some(65), handshake_seen: true, capabilities: ["recommendation.v1", "auth.hmac-sha256"], client_id: Some("python-cortex") }, reasoning_hash: "a7b1fa8709aa681bbdc3307e3825e30446e812ad46cd96dd188fe764838bb808"
+
+  2026-01-12T18:27:32.308997Z TRACE neuro_io::bridge: Bridge queued state frame, sequence: 67
+    at crates/neuro-io/src/bridge.rs:344
+
+  2026-01-12T18:27:32.309025Z TRACE neuro_io::bridge: Bridge wrote state bytes, bytes: 249, offset: 249
+    at crates/neuro-io/src/bridge.rs:396
+
+  2026-01-12T18:27:32.316570Z DEBUG neuro_io::bridge: Recommendation received, target_speed: Some(385.0), confidence: 0.8500000238418579
+    at crates/neuro-io/src/bridge.rs:546
+    in neuro_io::bridge::handle_incoming with msg: Recommendation(RecommendationMsg { msg_type: "recommendation", protocol_version: ProtocolVersion { major: 1, minor: 0 }, sequence: 67, target_speed_rpm: Some(385.0), confidence: 0.85, reasoning_hash: "18a596a70e90bc76fda81913c60191e3bd2b26ae0340955b29e5d53f2744b28b", issued_at_unix_us: 1768242452309141, ttl_ms: 1000, client_unix_us: Some(1768242452309141), auth_token: None }), require_handshake: false, inbound_state: InboundState { last_sequence: Some(66), handshake_seen: true, capabilities: ["recommendation.v1", "auth.hmac-sha256"], client_id: Some("python-cortex") }, reasoning_hash: "18a596a70e90bc76fda81913c60191e3bd2b26ae0340955b29e5d53f2744b28b"
+
+  2026-01-12T18:27:32.410152Z TRACE neuro_io::bridge: Bridge queued state frame, sequence: 68
+    at crates/neuro-io/src/bridge.rs:344
+
+  2026-01-12T18:27:32.410193Z TRACE neuro_io::bridge: Bridge wrote state bytes, bytes: 249, offset: 249
+    at crates/neuro-io/src/bridge.rs:396
+
+  2026-01-12T18:27:32.415960Z DEBUG neuro_io::bridge: Recommendation received, target_speed: Some(388.0), confidence: 0.8500000238418579
+    at crates/neuro-io/src/bridge.rs:546
+    in neuro_io::bridge::handle_incoming with msg: Recommendation(RecommendationMsg { msg_type: "recommendation", protocol_version: ProtocolVersion { major: 1, minor: 0 }, sequence: 68, target_speed_rpm: Some(388.0), confidence: 0.85, reasoning_hash: "64d05c79793f9f6b75fb1a1d1d34d09dc2d71cb313c10c1c76dda483c7fa4a98", issued_at_unix_us: 1768242452410309, ttl_ms: 1000, client_unix_us: Some(1768242452410309), auth_token: None }), require_handshake: false, inbound_state: InboundState { last_sequence: Some(67), handshake_seen: true, capabilities: ["recommendation.v1", "auth.hmac-sha256"], client_id: Some("python-cortex") }, reasoning_hash: "64d05c79793f9f6b75fb1a1d1d34d09dc2d71cb313c10c1c76dda483c7fa4a98"
+
+  2026-01-12T18:27:32.510515Z TRACE neuro_io::bridge: Bridge queued state frame, sequence: 69
+    at crates/neuro-io/src/bridge.rs:344
+
+  2026-01-12T18:27:32.510560Z TRACE neuro_io::bridge: Bridge wrote state bytes, bytes: 248, offset: 248
+    at crates/neuro-io/src/bridge.rs:396
+
+  2026-01-12T18:27:32.517773Z DEBUG neuro_io::bridge: Recommendation received, target_speed: Some(392.0), confidence: 0.8500000238418579
+    at crates/neuro-io/src/bridge.rs:546
+    in neuro_io::bridge::handle_incoming with msg: Recommendation(RecommendationMsg { msg_type: "recommendation", protocol_version: ProtocolVersion { major: 1, minor: 0 }, sequence: 69, target_speed_rpm: Some(392.0), confidence: 0.85, reasoning_hash: "63527cfa21c1890e05e1687d5882d7a49117b86a0ccf1ebcdb1c6841396b8942", issued_at_unix_us: 1768242452510676, ttl_ms: 1000, client_unix_us: Some(1768242452510676), auth_token: None }), require_handshake: false, inbound_state: InboundState { last_sequence: Some(68), handshake_seen: true, capabilities: ["recommendation.v1", "auth.hmac-sha256"], client_id: Some("python-cortex") }, reasoning_hash: "63527cfa21c1890e05e1687d5882d7a49117b86a0ccf1ebcdb1c6841396b8942"
+
+  2026-01-12T18:27:32.616149Z TRACE neuro_io::bridge: Bridge queued state frame, sequence: 70
+    at crates/neuro-io/src/bridge.rs:344
+
+  2026-01-12T18:27:32.616260Z TRACE neuro_io::bridge: Bridge wrote state bytes, bytes: 249, offset: 249
+    at crates/neuro-io/src/bridge.rs:396
+
+  2026-01-12T18:27:32.623401Z DEBUG neuro_io::bridge: Recommendation received, target_speed: Some(399.0), confidence: 0.8500000238418579
+    at crates/neuro-io/src/bridge.rs:546
+    in neuro_io::bridge::handle_incoming with msg: Recommendation(RecommendationMsg { msg_type: "recommendation", protocol_version: ProtocolVersion { major: 1, minor: 0 }, sequence: 70, target_speed_rpm: Some(399.0), confidence: 0.85, reasoning_hash: "fb0df18c983f6d6fa36269405615e13f30e99f1fdbb81a62302299be8c4a316e", issued_at_unix_us: 1768242452616568, ttl_ms: 1000, client_unix_us: Some(1768242452616568), auth_token: None }), require_handshake: false, inbound_state: InboundState { last_sequence: Some(69), handshake_seen: true, capabilities: ["recommendation.v1", "auth.hmac-sha256"], client_id: Some("python-cortex") }, reasoning_hash: "fb0df18c983f6d6fa36269405615e13f30e99f1fdbb81a62302299be8c4a316e"
+
+  2026-01-12T18:27:32.720636Z TRACE neuro_io::bridge: Bridge queued state frame, sequence: 71
+    at crates/neuro-io/src/bridge.rs:344
+
+  2026-01-12T18:27:32.720682Z TRACE neuro_io::bridge: Bridge wrote state bytes, bytes: 249, offset: 249
+    at crates/neuro-io/src/bridge.rs:396
+
+  2026-01-12T18:27:32.728251Z DEBUG neuro_io::bridge: Recommendation received, target_speed: Some(403.0), confidence: 0.8500000238418579
+    at crates/neuro-io/src/bridge.rs:546
+    in neuro_io::bridge::handle_incoming with msg: Recommendation(RecommendationMsg { msg_type: "recommendation", protocol_version: ProtocolVersion { major: 1, minor: 0 }, sequence: 71, target_speed_rpm: Some(403.0), confidence: 0.85, reasoning_hash: "ba2a23e91e4e146fd7a5434a7710e5a944b26cc67582a237fe171784d5ef0123", issued_at_unix_us: 1768242452720845, ttl_ms: 1000, client_unix_us: Some(1768242452720845), auth_token: None }), require_handshake: false, inbound_state: InboundState { last_sequence: Some(70), handshake_seen: true, capabilities: ["recommendation.v1", "auth.hmac-sha256"], client_id: Some("python-cortex") }, reasoning_hash: "ba2a23e91e4e146fd7a5434a7710e5a944b26cc67582a237fe171784d5ef0123"
+
+  2026-01-12T18:27:32.824659Z TRACE neuro_io::bridge: Bridge queued state frame, sequence: 72
+    at crates/neuro-io/src/bridge.rs:344
+
+  2026-01-12T18:27:32.824758Z TRACE neuro_io::bridge: Bridge wrote state bytes, bytes: 249, offset: 249
+    at crates/neuro-io/src/bridge.rs:396
+
+  2026-01-12T18:27:32.864817Z DEBUG neuro_io::bridge: Recommendation received, target_speed: Some(408.0), confidence: 0.8500000238418579
+    at crates/neuro-io/src/bridge.rs:546
+    in neuro_io::bridge::handle_incoming with msg: Recommendation(RecommendationMsg { msg_type: "recommendation", protocol_version: ProtocolVersion { major: 1, minor: 0 }, sequence: 72, target_speed_rpm: Some(408.0), confidence: 0.85, reasoning_hash: "0f39665fb85e7be41c1abdf0f4dfe6a070509c5415e81961e66203d503d18506", issued_at_unix_us: 1768242452858536, ttl_ms: 1000, client_unix_us: Some(1768242452858536), auth_token: None }), require_handshake: false, inbound_state: InboundState { last_sequence: Some(71), handshake_seen: true, capabilities: ["recommendation.v1", "auth.hmac-sha256"], client_id: Some("python-cortex") }, reasoning_hash: "0f39665fb85e7be41c1abdf0f4dfe6a070509c5415e81961e66203d503d18506"
+
+  2026-01-12T18:27:32.928824Z TRACE neuro_io::bridge: Bridge queued state frame, sequence: 73
+    at crates/neuro-io/src/bridge.rs:344
+
+  2026-01-12T18:27:32.928890Z TRACE neuro_io::bridge: Bridge wrote state bytes, bytes: 248, offset: 248
+    at crates/neuro-io/src/bridge.rs:396
+
+  2026-01-12T18:27:32.934089Z DEBUG neuro_io::bridge: Recommendation received, target_speed: Some(420.0), confidence: 0.8500000238418579
+    at crates/neuro-io/src/bridge.rs:546
+    in neuro_io::bridge::handle_incoming with msg: Recommendation(RecommendationMsg { msg_type: "recommendation", protocol_version: ProtocolVersion { major: 1, minor: 0 }, sequence: 73, target_speed_rpm: Some(420.0), confidence: 0.85, reasoning_hash: "8fd794877a26a191e3bc98e78fcaba2d5e605288a923bf59712c717b440ee158", issued_at_unix_us: 1768242452929044, ttl_ms: 1000, client_unix_us: Some(1768242452929044), auth_token: None }), require_handshake: false, inbound_state: InboundState { last_sequence: Some(72), handshake_seen: true, capabilities: ["recommendation.v1", "auth.hmac-sha256"], client_id: Some("python-cortex") }, reasoning_hash: "8fd794877a26a191e3bc98e78fcaba2d5e605288a923bf59712c717b440ee158"
+
+  2026-01-12T18:27:33.031251Z TRACE neuro_io::bridge: Bridge queued state frame, sequence: 74
+    at crates/neuro-io/src/bridge.rs:344
+
+  2026-01-12T18:27:33.031291Z TRACE neuro_io::bridge: Bridge wrote state bytes, bytes: 248, offset: 248
+    at crates/neuro-io/src/bridge.rs:396
+
+  2026-01-12T18:27:33.038853Z DEBUG neuro_io::bridge: Recommendation received, target_speed: Some(426.0), confidence: 0.8500000238418579
+    at crates/neuro-io/src/bridge.rs:546
+    in neuro_io::bridge::handle_incoming with msg: Recommendation(RecommendationMsg { msg_type: "recommendation", protocol_version: ProtocolVersion { major: 1, minor: 0 }, sequence: 74, target_speed_rpm: Some(426.0), confidence: 0.85, reasoning_hash: "d72f5c8bbee34f0659b4f7c3dbab00dddaa7abfba34bed54f8b95f3494d7fdb2", issued_at_unix_us: 1768242453031397, ttl_ms: 1000, client_unix_us: Some(1768242453031397), auth_token: None }), require_handshake: false, inbound_state: InboundState { last_sequence: Some(73), handshake_seen: true, capabilities: ["recommendation.v1", "auth.hmac-sha256"], client_id: Some("python-cortex") }, reasoning_hash: "d72f5c8bbee34f0659b4f7c3dbab00dddaa7abfba34bed54f8b95f3494d7fdb2"
+
+  2026-01-12T18:27:33.134643Z TRACE neuro_io::bridge: Bridge queued state frame, sequence: 75
+    at crates/neuro-io/src/bridge.rs:344
+
+  2026-01-12T18:27:33.134680Z TRACE neuro_io::bridge: Bridge wrote state bytes, bytes: 249, offset: 249
+    at crates/neuro-io/src/bridge.rs:396
+
+  2026-01-12T18:27:33.142241Z DEBUG neuro_io::bridge: Recommendation received, target_speed: Some(432.0), confidence: 0.8500000238418579
+    at crates/neuro-io/src/bridge.rs:546
+    in neuro_io::bridge::handle_incoming with msg: Recommendation(RecommendationMsg { msg_type: "recommendation", protocol_version: ProtocolVersion { major: 1, minor: 0 }, sequence: 75, target_speed_rpm: Some(432.0), confidence: 0.85, reasoning_hash: "496eb58975381153d9544c38329323ffb18050bef61621fd66cfc02cfe1f7146", issued_at_unix_us: 1768242453134799, ttl_ms: 1000, client_unix_us: Some(1768242453134799), auth_token: None }), require_handshake: false, inbound_state: InboundState { last_sequence: Some(74), handshake_seen: true, capabilities: ["recommendation.v1", "auth.hmac-sha256"], client_id: Some("python-cortex") }, reasoning_hash: "496eb58975381153d9544c38329323ffb18050bef61621fd66cfc02cfe1f7146"
+
+  2026-01-12T18:27:33.235646Z TRACE neuro_io::bridge: Bridge queued state frame, sequence: 76
+    at crates/neuro-io/src/bridge.rs:344
+
+  2026-01-12T18:27:33.235683Z TRACE neuro_io::bridge: Bridge wrote state bytes, bytes: 249, offset: 249
+    at crates/neuro-io/src/bridge.rs:396
+
+  2026-01-12T18:27:33.241319Z DEBUG neuro_io::bridge: Recommendation received, target_speed: Some(432.0), confidence: 0.8500000238418579
+    at crates/neuro-io/src/bridge.rs:546
+    in neuro_io::bridge::handle_incoming with msg: Recommendation(RecommendationMsg { msg_type: "recommendation", protocol_version: ProtocolVersion { major: 1, minor: 0 }, sequence: 76, target_speed_rpm: Some(432.0), confidence: 0.85, reasoning_hash: "ca66dfa7fbfed07ace28329631ce00487ea58ad79622ff7702adf7040047cd98", issued_at_unix_us: 1768242453235795, ttl_ms: 1000, client_unix_us: Some(1768242453235795), auth_token: None }), require_handshake: false, inbound_state: InboundState { last_sequence: Some(75), handshake_seen: true, capabilities: ["recommendation.v1", "auth.hmac-sha256"], client_id: Some("python-cortex") }, reasoning_hash: "ca66dfa7fbfed07ace28329631ce00487ea58ad79622ff7702adf7040047cd98"
+
+  2026-01-12T18:27:33.336761Z TRACE neuro_io::bridge: Bridge queued state frame, sequence: 77
+    at crates/neuro-io/src/bridge.rs:344
+
+  2026-01-12T18:27:33.336802Z TRACE neuro_io::bridge: Bridge wrote state bytes, bytes: 249, offset: 249
+    at crates/neuro-io/src/bridge.rs:396
+
+  2026-01-12T18:27:33.341862Z DEBUG neuro_io::bridge: Recommendation received, target_speed: Some(437.0), confidence: 0.8500000238418579
+    at crates/neuro-io/src/bridge.rs:546
+    in neuro_io::bridge::handle_incoming with msg: Recommendation(RecommendationMsg { msg_type: "recommendation", protocol_version: ProtocolVersion { major: 1, minor: 0 }, sequence: 77, target_speed_rpm: Some(437.0), confidence: 0.85, reasoning_hash: "2816aadc740d966fa2053698d50acfab29d3f985a76b998194a85f32a69e8620", issued_at_unix_us: 1768242453336927, ttl_ms: 1000, client_unix_us: Some(1768242453336927), auth_token: None }), require_handshake: false, inbound_state: InboundState { last_sequence: Some(76), handshake_seen: true, capabilities: ["recommendation.v1", "auth.hmac-sha256"], client_id: Some("python-cortex") }, reasoning_hash: "2816aadc740d966fa2053698d50acfab29d3f985a76b998194a85f32a69e8620"
+
+  2026-01-12T18:27:33.441051Z TRACE neuro_io::bridge: Bridge queued state frame, sequence: 78
+    at crates/neuro-io/src/bridge.rs:344
+
+  2026-01-12T18:27:33.441097Z TRACE neuro_io::bridge: Bridge wrote state bytes, bytes: 248, offset: 248
+    at crates/neuro-io/src/bridge.rs:396
+
+  2026-01-12T18:27:33.448454Z DEBUG neuro_io::bridge: Recommendation received, target_speed: Some(445.0), confidence: 0.8500000238418579
+    at crates/neuro-io/src/bridge.rs:546
+    in neuro_io::bridge::handle_incoming with msg: Recommendation(RecommendationMsg { msg_type: "recommendation", protocol_version: ProtocolVersion { major: 1, minor: 0 }, sequence: 78, target_speed_rpm: Some(445.0), confidence: 0.85, reasoning_hash: "4de72d763ce513b580328f7c649d07ba135130f96c5f64f7c6164d2c90c0968b", issued_at_unix_us: 1768242453441231, ttl_ms: 1000, client_unix_us: Some(1768242453441231), auth_token: None }), require_handshake: false, inbound_state: InboundState { last_sequence: Some(77), handshake_seen: true, capabilities: ["recommendation.v1", "auth.hmac-sha256"], client_id: Some("python-cortex") }, reasoning_hash: "4de72d763ce513b580328f7c649d07ba135130f96c5f64f7c6164d2c90c0968b"
+
+  2026-01-12T18:27:33.543791Z TRACE neuro_io::bridge: Bridge queued state frame, sequence: 79
+    at crates/neuro-io/src/bridge.rs:344
+
+  2026-01-12T18:27:33.543820Z TRACE neuro_io::bridge: Bridge wrote state bytes, bytes: 249, offset: 249
+    at crates/neuro-io/src/bridge.rs:396
+
+  2026-01-12T18:27:33.549867Z DEBUG neuro_io::bridge: Recommendation received, target_speed: Some(451.0), confidence: 0.8500000238418579
+    at crates/neuro-io/src/bridge.rs:546
+    in neuro_io::bridge::handle_incoming with msg: Recommendation(RecommendationMsg { msg_type: "recommendation", protocol_version: ProtocolVersion { major: 1, minor: 0 }, sequence: 79, target_speed_rpm: Some(451.0), confidence: 0.85, reasoning_hash: "ce56d3b0027449074a273e13347da4c957583e2ed35955c236396bda50efc5a7", issued_at_unix_us: 1768242453543930, ttl_ms: 1000, client_unix_us: Some(1768242453543930), auth_token: None }), require_handshake: false, inbound_state: InboundState { last_sequence: Some(78), handshake_seen: true, capabilities: ["recommendation.v1", "auth.hmac-sha256"], client_id: Some("python-cortex") }, reasoning_hash: "ce56d3b0027449074a273e13347da4c957583e2ed35955c236396bda50efc5a7"
+
+  2026-01-12T18:27:33.648631Z TRACE neuro_io::bridge: Bridge queued state frame, sequence: 80
+    at crates/neuro-io/src/bridge.rs:344
+
+  2026-01-12T18:27:33.648667Z TRACE neuro_io::bridge: Bridge wrote state bytes, bytes: 248, offset: 248
+    at crates/neuro-io/src/bridge.rs:396
+
+  2026-01-12T18:27:33.656232Z DEBUG neuro_io::bridge: Recommendation received, target_speed: Some(455.0), confidence: 0.8500000238418579
+    at crates/neuro-io/src/bridge.rs:546
+    in neuro_io::bridge::handle_incoming with msg: Recommendation(RecommendationMsg { msg_type: "recommendation", protocol_version: ProtocolVersion { major: 1, minor: 0 }, sequence: 80, target_speed_rpm: Some(455.0), confidence: 0.85, reasoning_hash: "c25a55c33351c855cea55baa11709d73de2f469de0cfef6c64c2365b66728b0e", issued_at_unix_us: 1768242453648816, ttl_ms: 1000, client_unix_us: Some(1768242453648816), auth_token: None }), require_handshake: false, inbound_state: InboundState { last_sequence: Some(79), handshake_seen: true, capabilities: ["recommendation.v1", "auth.hmac-sha256"], client_id: Some("python-cortex") }, reasoning_hash: "c25a55c33351c855cea55baa11709d73de2f469de0cfef6c64c2365b66728b0e"
+
+  2026-01-12T18:27:33.752002Z TRACE neuro_io::bridge: Bridge queued state frame, sequence: 81
+    at crates/neuro-io/src/bridge.rs:344
+
+  2026-01-12T18:27:33.752038Z TRACE neuro_io::bridge: Bridge wrote state bytes, bytes: 249, offset: 249
+    at crates/neuro-io/src/bridge.rs:396
+
+  2026-01-12T18:27:33.757167Z DEBUG neuro_io::bridge: Recommendation received, target_speed: Some(462.0), confidence: 0.8500000238418579
+    at crates/neuro-io/src/bridge.rs:546
+    in neuro_io::bridge::handle_incoming with msg: Recommendation(RecommendationMsg { msg_type: "recommendation", protocol_version: ProtocolVersion { major: 1, minor: 0 }, sequence: 81, target_speed_rpm: Some(462.0), confidence: 0.85, reasoning_hash: "19ed7859347295e19a4d0949c966f87ae6f6c9aab015d1fa68f89e3cac094799", issued_at_unix_us: 1768242453752143, ttl_ms: 1000, client_unix_us: Some(1768242453752143), auth_token: None }), require_handshake: false, inbound_state: InboundState { last_sequence: Some(80), handshake_seen: true, capabilities: ["recommendation.v1", "auth.hmac-sha256"], client_id: Some("python-cortex") }, reasoning_hash: "19ed7859347295e19a4d0949c966f87ae6f6c9aab015d1fa68f89e3cac094799"
+
+  2026-01-12T18:27:33.854789Z TRACE neuro_io::bridge: Bridge queued state frame, sequence: 82
+    at crates/neuro-io/src/bridge.rs:344
+
+  2026-01-12T18:27:33.854824Z TRACE neuro_io::bridge: Bridge wrote state bytes, bytes: 249, offset: 249
+    at crates/neuro-io/src/bridge.rs:396
+
+  2026-01-12T18:27:33.860171Z DEBUG neuro_io::bridge: Recommendation received, target_speed: Some(469.0), confidence: 0.8500000238418579
+    at crates/neuro-io/src/bridge.rs:546
+    in neuro_io::bridge::handle_incoming with msg: Recommendation(RecommendationMsg { msg_type: "recommendation", protocol_version: ProtocolVersion { major: 1, minor: 0 }, sequence: 82, target_speed_rpm: Some(469.0), confidence: 0.85, reasoning_hash: "73c4f6bfebe6dc06d916fbb8ad1b462a0496d86171984d61683ff451cf83f7fc", issued_at_unix_us: 1768242453854931, ttl_ms: 1000, client_unix_us: Some(1768242453854931), auth_token: None }), require_handshake: false, inbound_state: InboundState { last_sequence: Some(81), handshake_seen: true, capabilities: ["recommendation.v1", "auth.hmac-sha256"], client_id: Some("python-cortex") }, reasoning_hash: "73c4f6bfebe6dc06d916fbb8ad1b462a0496d86171984d61683ff451cf83f7fc"
+
+  2026-01-12T18:27:33.957821Z TRACE neuro_io::bridge: Bridge queued state frame, sequence: 83
+    at crates/neuro-io/src/bridge.rs:344
+
+  2026-01-12T18:27:33.957862Z TRACE neuro_io::bridge: Bridge wrote state bytes, bytes: 248, offset: 248
+    at crates/neuro-io/src/bridge.rs:396
+
+  2026-01-12T18:27:33.962917Z DEBUG neuro_io::bridge: Recommendation received, target_speed: Some(476.0), confidence: 0.8500000238418579
+    at crates/neuro-io/src/bridge.rs:546
+    in neuro_io::bridge::handle_incoming with msg: Recommendation(RecommendationMsg { msg_type: "recommendation", protocol_version: ProtocolVersion { major: 1, minor: 0 }, sequence: 83, target_speed_rpm: Some(476.0), confidence: 0.85, reasoning_hash: "6b214a6480e294059a7e38da259d8b75005275506ddc77b6d86d595b075749ca", issued_at_unix_us: 1768242453958014, ttl_ms: 1000, client_unix_us: Some(1768242453958014), auth_token: None }), require_handshake: false, inbound_state: InboundState { last_sequence: Some(82), handshake_seen: true, capabilities: ["recommendation.v1", "auth.hmac-sha256"], client_id: Some("python-cortex") }, reasoning_hash: "6b214a6480e294059a7e38da259d8b75005275506ddc77b6d86d595b075749ca"
+
+  2026-01-12T18:27:34.065039Z TRACE neuro_io::bridge: Bridge queued state frame, sequence: 84
+    at crates/neuro-io/src/bridge.rs:344
+
+  2026-01-12T18:27:34.065065Z TRACE neuro_io::bridge: Bridge wrote state bytes, bytes: 249, offset: 249
+    at crates/neuro-io/src/bridge.rs:396
+
+  2026-01-12T18:27:34.073200Z DEBUG neuro_io::bridge: Recommendation received, target_speed: Some(482.0), confidence: 0.8500000238418579
+    at crates/neuro-io/src/bridge.rs:546
+    in neuro_io::bridge::handle_incoming with msg: Recommendation(RecommendationMsg { msg_type: "recommendation", protocol_version: ProtocolVersion { major: 1, minor: 0 }, sequence: 84, target_speed_rpm: Some(482.0), confidence: 0.85, reasoning_hash: "593fa20ca4ee252b65d2054ce9064a849b6367cfe65a96a2954f623f2fa21dbb", issued_at_unix_us: 1768242454065160, ttl_ms: 1000, client_unix_us: Some(1768242454065160), auth_token: None }), require_handshake: false, inbound_state: InboundState { last_sequence: Some(83), handshake_seen: true, capabilities: ["recommendation.v1", "auth.hmac-sha256"], client_id: Some("python-cortex") }, reasoning_hash: "593fa20ca4ee252b65d2054ce9064a849b6367cfe65a96a2954f623f2fa21dbb"
+
+  2026-01-12T18:27:34.217939Z  INFO neuro_plc::runtime::app: Run complete, cycles_executed: 10004, cycles_missed: 28, safety_rejections: 0, max_jitter_us: 0, timing_violations: 0
+    at crates/neuro-plc/src/runtime/app.rs:242
+

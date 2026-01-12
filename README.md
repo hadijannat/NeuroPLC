@@ -128,9 +128,9 @@ curl http://localhost:9090/metrics
 ```
 
 **Exposed metrics:**
-- `neuroplc_cycles_total` — Control loop iterations
+- `neuroplc_cycles_executed_total` — Control loop iterations
 - `neuroplc_safety_rejections_total` — Rejected unsafe commands
-- `neuroplc_cycle_jitter_us` — Timing precision histogram
+- `neuroplc_cycle_jitter_microseconds` — Timing precision histogram
 
 ### 🏭 Industrial Protocols
 
@@ -172,6 +172,17 @@ docker compose up --build
 - `basyx` — BaSyx AAS GUI (http://localhost:8081)
 - `prometheus` — Metrics (http://localhost:9090)
 
+### Simulation Stack (Protocols + Observability)
+
+```bash
+docker compose -f docker/compose.simulation.yml up -d --build
+```
+
+Includes Modbus plant simulation, OPC UA PLC simulator, BaSyx AAS, Prometheus,
+Grafana, and Jaeger. A full end-to-end data journey report is in:
+
+- `docs/reports/simulation-data-journey.md`
+
 ### Kubernetes (Production)
 
 ```bash
@@ -201,6 +212,30 @@ cargo test --all
 # Integration tests (requires release build)
 cargo build --release
 cargo test --test integration_test -p neuro-plc
+```
+
+### Simulation Runbook
+
+Use the simulation stack + host-run spine to validate end-to-end data flow:
+
+```bash
+docker compose -f docker/compose.simulation.yml up -d --build
+
+RUST_LOG=info,neuro_io=trace \\
+  cargo run --release --features opcua --bin neuro-plc -- \\
+  --metrics-addr 0.0.0.0:9100 \\
+  --audit-log logs/sim/audit.jsonl \\
+  --modbus 127.0.0.1:5020
+
+BASYX_URL=http://localhost:8081 \\
+  NEUROPLC_SEND_HELLO=1 \\
+  python3 python-cortex/run_supervisor.py
+```
+
+Or run the scripted version:
+
+```bash
+scripts/run_simulation.sh
 ```
 
 ### Property-Based Testing

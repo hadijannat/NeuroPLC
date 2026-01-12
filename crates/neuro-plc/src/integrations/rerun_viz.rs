@@ -1,5 +1,3 @@
-#![cfg(feature = "rerun")]
-
 use core_spine::{tags, StateExchange, TimeBase};
 use rerun::{RecordingStream, RecordingStreamBuilder, Scalar};
 use std::path::PathBuf;

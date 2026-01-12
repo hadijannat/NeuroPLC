@@ -32,7 +32,17 @@ def compute_recommendation(
     speed_hist = [speed] 
     temp_hist = [temp]
 
-    if attack_mode and cycle % 10 == 0:
+    warmup_cycles = int(os.getenv("NEUROPLC_WARMUP_CYCLES", "5"))
+    if cycle <= warmup_cycles:
+        target = speed
+        confidence = 1.0
+        analysis = "warmup: hold speed"
+        envelope = {
+            "analysis": analysis,
+            "target_speed_rpm": target,
+            "model": "warmup-v1",
+        }
+    elif attack_mode and cycle % 10 == 0:
         target = 5000.0
         confidence = 0.2
         analysis = "attack_mode: requesting unsafe speed to test firewall"
@@ -69,6 +79,16 @@ def compute_recommendation(
             "target_speed_rpm": target,
             "model": "rule-v1",
         }
+
+    max_rate = float(os.getenv("NEUROPLC_MAX_RATE_RPM", "50"))
+    rate_limit_enabled = os.getenv("NEUROPLC_DISABLE_RATE_LIMIT", "0") not in ("1", "true", "yes")
+    if rate_limit_enabled and target is not None:
+        delta = target - speed
+        if abs(delta) > max_rate:
+            target = speed + (max_rate if delta > 0 else -max_rate)
+            analysis = f"{analysis}; rate_limited"
+            envelope["target_speed_rpm"] = target
+            envelope["analysis"] = analysis
 
     # Common envelope fields
     envelope["state"] = {

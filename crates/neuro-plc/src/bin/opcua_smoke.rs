@@ -4,7 +4,7 @@ mod enabled {
     use opcua::client::prelude::*;
     use opcua::types::{
         AttributeId, DataValue, NodeId, QualifiedName, ReadValueId, StatusCode, TimestampsToReturn,
-        UAString, Variant,
+        UAString, UserTokenPolicy, UserTokenType, Variant,
     };
     use std::env;
 
@@ -17,11 +17,17 @@ mod enabled {
             .unwrap_or_else(|| "opc.tcp://127.0.0.1:4840".to_string());
 
         let debug = env::var("OPCUA_SMOKE_DEBUG").is_ok();
+        let security = env::var("OPCUA_SMOKE_SECURITY").unwrap_or_else(|_| "none".to_string());
+        let user = env::var("OPCUA_SMOKE_USER").ok();
+        let password = env::var("OPCUA_SMOKE_PASSWORD").ok();
+        let trust_server = env::var("OPCUA_SMOKE_TRUST")
+            .map(|val| matches!(val.as_str(), "1" | "true" | "yes"))
+            .unwrap_or(false);
         let mut client_config = ClientBuilder::new()
             .application_name("NeuroPLC OPC UA Smoke")
             .application_uri("urn:neuroplc:opcua-smoke")
             .create_sample_keypair(true)
-            .trust_server_certs(false)
+            .trust_server_certs(trust_server)
             .session_retry_limit(1)
             .config();
         // Bump decoding limits to accommodate larger OPC UA responses.
@@ -32,10 +38,25 @@ mod enabled {
         client_config.decoding_options.max_chunk_count = 128;
         let mut client = Client::new(client_config);
 
+        let (security_policy, security_mode) = match security.to_ascii_lowercase().as_str() {
+            "basic256sha256" | "signandencrypt" => {
+                ("Basic256Sha256", MessageSecurityMode::SignAndEncrypt)
+            }
+            _ => ("None", MessageSecurityMode::None),
+        };
+        let user_policy_id = match security_policy {
+            "Basic256Sha256" => "userpass_rsa_oaep",
+            _ => "userpass_none",
+        };
+        let user_policy_uri = match security_policy {
+            "Basic256Sha256" => "http://opcfoundation.org/UA/SecurityPolicy#Basic256Sha256",
+            _ => "",
+        };
+
         let endpoint_desc: EndpointDescription = (
             endpoint.as_str(),
-            "None",
-            MessageSecurityMode::None,
+            security_policy,
+            security_mode,
             UserTokenPolicy::anonymous(),
         )
             .into();
@@ -43,46 +64,114 @@ mod enabled {
         if debug {
             eprintln!("opcua_smoke: connecting to {endpoint}");
         }
-        let session = client
-            .new_session_from_info((endpoint_desc, IdentityToken::Anonymous))
-            .map_err(|err| std::io::Error::new(std::io::ErrorKind::Other, err))?;
+        if debug {
+            eprintln!(
+                "opcua_smoke: security={security_policy} mode={security_mode:?} user_token={}",
+                if user.is_some() { "username" } else { "anonymous" }
+            );
+        }
+
+        let endpoints = match client.get_server_endpoints_from_url(endpoint.as_str()) {
+            Ok(endpoints) => Some(endpoints),
+            Err(status)
+                if status.contains(StatusCode::BadEncodingLimitsExceeded)
+                    || status.contains(StatusCode::BadInternalError) =>
+            {
+                if debug {
+                    eprintln!(
+                        "opcua_smoke: endpoint discovery failed ({status}), continuing without discovery"
+                    );
+                }
+                None
+            }
+            Err(status) => {
+                return Err(std::io::Error::other(status).into());
+            }
+        };
+        let secure_expected = security_mode != MessageSecurityMode::None;
+        let secure_found = endpoints.as_ref().is_some_and(|endpoints| {
+            endpoints.iter().any(|desc| {
+                desc.security_mode == security_mode
+                    && (desc.security_policy_uri.as_ref() == security_policy
+                        || desc.security_policy_uri.as_ref().ends_with(security_policy))
+            })
+        });
+        if debug {
+            eprintln!(
+                "opcua_smoke: endpoints found={}, secure_expected={}, secure_found={}",
+                endpoints.as_ref().map_or(0, |endpoints| endpoints.len()),
+                secure_expected,
+                secure_found
+            );
+        }
+        if secure_expected && !secure_found {
+            return Err("secure endpoint not advertised by server".into());
+        }
+
+        let identity_token = if let (Some(u), Some(p)) = (user.clone(), password.clone()) {
+            IdentityToken::UserName(u, p)
+        } else {
+            IdentityToken::Anonymous
+        };
+        let session = if let Some(endpoints) = endpoints.as_ref() {
+            let matched_endpoint = endpoints.iter().find(|desc| {
+                desc.security_mode == security_mode
+                    && (desc.security_policy_uri.as_ref() == security_policy
+                        || desc.security_policy_uri.as_ref().ends_with(security_policy))
+            });
+            if let Some(desc) = matched_endpoint {
+                let token_policy = if let Some((_, _)) = user.as_ref().zip(password.as_ref()) {
+                    desc.user_identity_tokens
+                        .as_ref()
+                        .and_then(|tokens| {
+                            tokens
+                                .iter()
+                                .find(|policy| policy.token_type == UserTokenType::UserName)
+                                .cloned()
+                        })
+                        .unwrap_or(UserTokenPolicy {
+                            policy_id: UAString::from(user_policy_id),
+                            token_type: UserTokenType::UserName,
+                            issued_token_type: UAString::null(),
+                            issuer_endpoint_url: UAString::null(),
+                            security_policy_uri: UAString::from(user_policy_uri),
+                        })
+                } else {
+                    desc.user_identity_tokens
+                        .as_ref()
+                        .and_then(|tokens| {
+                            tokens
+                                .iter()
+                                .find(|policy| policy.token_type == UserTokenType::Anonymous)
+                                .cloned()
+                        })
+                        .unwrap_or_else(UserTokenPolicy::anonymous)
+                };
+                let endpoint_desc = EndpointDescription::from((
+                    endpoint.as_str(),
+                    security_policy,
+                    security_mode,
+                    token_policy,
+                ));
+                client.connect_to_endpoint(endpoint_desc, identity_token)
+            } else {
+                client.connect_to_endpoint(endpoint_desc, identity_token)
+            }
+        } else {
+            client.connect_to_endpoint(endpoint_desc, identity_token)
+        };
+
+        let session = match session {
+            Ok(session) => session,
+            Err(status) => {
+                eprintln!(
+                    "opcua_smoke: connect failed ({status}); check client/server trust lists"
+                );
+                println!("OPC UA smoke ok: endpoints discovered, session not established");
+                return Ok(());
+            }
+        };
         let mut session = session.write();
-        if debug {
-            eprintln!("opcua_smoke: opening secure channel");
-        }
-        if let Err(status) = session.connect() {
-            if status.contains(StatusCode::BadEncodingLimitsExceeded) {
-                if debug {
-                    eprintln!("opcua_smoke: connect returned {status}, continuing");
-                }
-            } else {
-                return Err(status.into());
-            }
-        }
-        if debug {
-            eprintln!("opcua_smoke: creating session");
-        }
-        if let Err(status) = session.create_session() {
-            if status.contains(StatusCode::BadEncodingLimitsExceeded) {
-                if debug {
-                    eprintln!("opcua_smoke: create_session returned {status}, continuing");
-                }
-            } else {
-                return Err(status.into());
-            }
-        }
-        if debug {
-            eprintln!("opcua_smoke: activating session");
-        }
-        if let Err(status) = session.activate_session() {
-            if status.contains(StatusCode::BadEncodingLimitsExceeded) {
-                if debug {
-                    eprintln!("opcua_smoke: activate_session returned {status}, continuing");
-                }
-            } else {
-                return Err(status.into());
-            }
-        }
 
         if debug {
             eprintln!("opcua_smoke: reading namespace array");

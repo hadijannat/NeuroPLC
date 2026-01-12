@@ -1,0 +1,164 @@
+{
+  "aas": {
+    "modelType": "AssetAdministrationShell",
+    "assetInformation": {
+      "assetKind": "Instance",
+      "globalAssetId": "urn:neuroplc:asset:motor:001"
+    },
+    "submodels": [
+      {
+        "keys": [
+          {
+            "type": "Submodel",
+            "value": "urn:neuroplc:sm:operational-data:001"
+          }
+        ],
+        "type": "ModelReference"
+      },
+      {
+        "keys": [
+          {
+            "type": "Submodel",
+            "value": "urn:neuroplc:sm:ai-recommendation:001"
+          }
+        ],
+        "type": "ModelReference"
+      },
+      {
+        "keys": [
+          {
+            "type": "Submodel",
+            "value": "urn:neuroplc:sm:safety-parameters:001"
+          }
+        ],
+        "type": "ModelReference"
+      },
+      {
+        "keys": [
+          {
+            "type": "Submodel",
+            "value": "urn:neuroplc:sm:nameplate:001"
+          }
+        ],
+        "type": "ModelReference"
+      },
+      {
+        "keys": [
+          {
+            "type": "Submodel",
+            "value": "urn:neuroplc:sm:functional-safety:001"
+          }
+        ],
+        "type": "ModelReference"
+      }
+    ],
+    "id": "urn:neuroplc:aas:motor:001",
+    "idShort": "NeuroPLC"
+  },
+  "operational_submodel": {
+    "modelType": "Submodel",
+    "kind": "Instance",
+    "semanticId": {
+      "keys": [
+        {
+          "type": "GlobalReference",
+          "value": "urn:neuroplc:sm:OperationalData:1:0"
+        }
+      ],
+      "type": null
+    },
+    "id": "urn:neuroplc:sm:operational-data:001",
+    "idShort": "OperationalData",
+    "submodelElements": [
+      {
+        "modelType": "Property",
+        "value": "412.0",
+        "valueType": "xs:double",
+        "idShort": "MotorSpeedRPM"
+      },
+      {
+        "modelType": "Property",
+        "value": "46.9",
+        "valueType": "xs:double",
+        "idShort": "MotorTemperatureC"
+      },
+      {
+        "modelType": "Property",
+        "value": "1.11",
+        "valueType": "xs:double",
+        "idShort": "SystemPressureBar"
+      },
+      {
+        "modelType": "Property",
+        "value": "2026-01-12T18:27:33.758505Z",
+        "valueType": "xs:dateTime",
+        "idShort": "LastUpdate"
+      },
+      {
+        "modelType": "Property",
+        "value": "81",
+        "valueType": "xs:long",
+        "idShort": "CycleCount"
+      },
+      {
+        "modelType": "Property",
+        "value": "true",
+        "valueType": "xs:boolean",
+        "idShort": "IsHealthy"
+      },
+      {
+        "modelType": "Property",
+        "value": "0",
+        "valueType": "xs:long",
+        "idShort": "CycleJitterUs"
+      },
+      {
+        "modelType": "Property",
+        "value": "normal",
+        "valueType": "xs:string",
+        "idShort": "SafetyState"
+      }
+    ]
+  },
+  "ai_submodel": {
+    "modelType": "Submodel",
+    "kind": "Instance",
+    "semanticId": {
+      "keys": [
+        {
+          "type": "GlobalReference",
+          "value": "urn:neuroplc:sm:AIRecommendation:1:0"
+        }
+      ],
+      "type": null
+    },
+    "id": "urn:neuroplc:sm:ai-recommendation:001",
+    "idShort": "AIRecommendation",
+    "submodelElements": [
+      {
+        "modelType": "Property",
+        "value": "462.0",
+        "valueType": "xs:double",
+        "idShort": "RecommendedSpeedRPM"
+      },
+      {
+        "modelType": "Property",
+        "value": "0.85",
+        "valueType": "xs:double",
+        "idShort": "ConfidenceScore"
+      },
+      {
+        "modelType": "Property",
+        "value": "19ed7859347295e19a4d0949c966f87ae6f6c9aab015d1fa68f89e3cac094799",
+        "valueType": "xs:string",
+        "idShort": "ReasoningHash"
+      },
+      {
+        "modelType": "Property",
+        "value": "2026-01-12T18:27:33.773238Z",
+        "valueType": "xs:dateTime",
+        "idShort": "RecommendationTimestamp"
+      }
+    ]
+  }
+}

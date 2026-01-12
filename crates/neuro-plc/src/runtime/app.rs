@@ -177,15 +177,17 @@ pub fn run(config: RuntimeConfig) {
 
     #[cfg(feature = "opcua")]
     let opcua_handle = if config.opcua_enabled {
-        let mut opcua_config = OpcuaConfig::default();
-        opcua_config.endpoint = config.opcua_endpoint.clone();
-        opcua_config.secure_only = config.opcua_secure_only;
-        opcua_config.allow_anonymous = config.opcua_allow_anonymous;
-        opcua_config.username = config.opcua_user.clone();
-        opcua_config.password = config.opcua_password.clone();
-        opcua_config.pki_dir = config.opcua_pki_dir.clone();
-        opcua_config.create_sample_keypair = config.opcua_create_sample_keypair;
-        opcua_config.allow_write = config.opcua_allow_write;
+        let opcua_config = OpcuaConfig {
+            endpoint: config.opcua_endpoint.clone(),
+            secure_only: config.opcua_secure_only,
+            allow_anonymous: config.opcua_allow_anonymous,
+            username: config.opcua_user.clone(),
+            password: config.opcua_password.clone(),
+            pki_dir: config.opcua_pki_dir.clone(),
+            create_sample_keypair: config.opcua_create_sample_keypair,
+            allow_write: config.opcua_allow_write,
+            ..Default::default()
+        };
         info!(endpoint = %opcua_config.endpoint, "Starting OPC UA server");
         Some(run_opcua(
             Arc::clone(&exchange),
@@ -199,8 +201,10 @@ pub fn run(config: RuntimeConfig) {
 
     #[cfg(feature = "rerun")]
     let rerun_handle = if config.rerun_enabled {
-        let mut rerun_config = RerunConfig::default();
-        rerun_config.save_path = config.rerun_save_path.map(PathBuf::from);
+        let rerun_config = RerunConfig {
+            save_path: config.rerun_save_path.map(PathBuf::from),
+            ..Default::default()
+        };
         info!("Starting Rerun visualization");
         run_rerun(
             Arc::clone(&exchange),

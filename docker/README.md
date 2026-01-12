@@ -8,6 +8,7 @@ This folder contains the container build and local digital-twin stack.
 - `compose.dev.yml` - Full local development stack (NeuroPLC + BaSyx + Prometheus + Rerun).
 - `compose.digitaltwin.yml` - Local BaSyx AAS environment + GUI stack.
 - `compose.prod.yml` - Minimal production-oriented stack (NeuroPLC + metrics + audit log).
+- `compose.simulation.yml` - Protocol + observability simulation stack (Modbus plant, OPC UA PLC, BaSyx, Prometheus, Grafana, Jaeger).
 - `basyx-infra.yml` - Endpoint configuration consumed by the BaSyx GUI container.
 
 ## Local digital twin
@@ -24,6 +25,12 @@ Once running:
 
 ```bash
 docker compose -f docker/compose.dev.yml up --build
+```
+
+## Simulation stack
+
+```bash
+docker compose -f docker/compose.simulation.yml up -d --build
 ```
 
 ## Minimal production stack

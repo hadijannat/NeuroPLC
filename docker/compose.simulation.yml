@@ -1,0 +1,99 @@
+services:
+  opc-plc:
+    image: mcr.microsoft.com/iotedge/opc-plc:latest
+    container_name: opc-plc-simulator
+    ports:
+      - "50000:50000"
+    command: >
+      --pn=50000 --autoaccept --sph --sn=5 --sr=10 --st=uint
+      --fn=5 --fr=1 --ft=uint --gn=5
+    networks:
+      - neuroplc-net
+
+  modbus-sim:
+    build: ../simulators/modbus
+    container_name: modbus-simulator
+    ports:
+      - "5020:5020"
+    networks:
+      - neuroplc-net
+
+  aas-env:
+    image: eclipsebasyx/aas-environment:2.0.0-SNAPSHOT
+    container_name: basyx-aas
+    ports:
+      - "8081:8081"
+    volumes:
+      - ../aas-models:/application/aas
+    environment:
+      - basyx.cors.allowed-origins=*
+    networks:
+      - neuroplc-net
+
+  aas-registry:
+    image: eclipsebasyx/aas-registry-log-mem:2.0.0-SNAPSHOT
+    container_name: basyx-registry
+    ports:
+      - "8082:8080"
+    networks:
+      - neuroplc-net
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    volumes:
+      - ../observability/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ../observability/alert_rules.yml:/etc/prometheus/alert_rules.yml
+    ports:
+      - "9090:9090"
+    networks:
+      - neuroplc-net
+
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: jaeger
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+    ports:
+      - "16686:16686"
+      - "4317:4317"
+      - "4318:4318"
+    networks:
+      - neuroplc-net
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - ../observability/grafana/provisioning:/etc/grafana/provisioning
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    depends_on:
+      - prometheus
+      - jaeger
+    networks:
+      - neuroplc-net
+
+  plant-sim:
+    build: ../simulators/plant
+    container_name: plant-simulator
+    environment:
+      - MODBUS_HOST=modbus-sim
+      - MODBUS_PORT=5020
+      - OPCUA_HOST=opc-plc
+      - OPCUA_PORT=50000
+      - SIMULATION_DT=0.1
+    depends_on:
+      - modbus-sim
+      - opc-plc
+    networks:
+      - neuroplc-net
+
+networks:
+  neuroplc-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 192.168.100.0/24

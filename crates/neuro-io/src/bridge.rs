@@ -15,7 +15,7 @@ use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::sync::{atomic::AtomicBool, Arc};
 use std::time::{Duration, Instant};
-use tracing::{debug, error, info, instrument, warn, Span};
+use tracing::{debug, error, info, instrument, trace, warn, Span};
 
 pub struct BridgeConfig {
     pub bind_addr: String,
@@ -341,6 +341,7 @@ pub fn run_bridge(
                             send_buf = line.into_bytes();
                             send_buf.push(b'\n');
                             send_offset = 0;
+                            trace!(sequence = state_sequence, "Bridge queued state frame");
                         }
                     }
                     WireProtocol::Protobuf => {
@@ -392,6 +393,7 @@ pub fn run_bridge(
                     }
                     Ok(n) => {
                         send_offset += n;
+                        trace!(bytes = n, offset = send_offset, "Bridge wrote state bytes");
                         if send_offset >= send_buf.len() {
                             send_buf.clear();
                             send_offset = 0;

@@ -1,5 +1,3 @@
-#![cfg(feature = "opcua")]
-
 use core_spine::{tags, StateExchange, TimeBase};
 use opcua::server::address_space::{AccessLevel, UserAccessLevel};
 use opcua::server::config::{ServerEndpoint, ServerUserToken, ANONYMOUS_USER_TOKEN_ID};

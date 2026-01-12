@@ -1,0 +1,11 @@
+groups:
+  - name: neuroplc
+    rules:
+      - alert: NeuroPLCSafetyRejection
+        expr: increase(neuroplc_safety_rejections_total[1m]) > 0
+        for: 10s
+        labels:
+          severity: warning
+        annotations:
+          summary: "Safety rejections observed in last minute"
+          description: "Safety firewall rejected at least one recommendation."
