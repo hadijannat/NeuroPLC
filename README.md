@@ -69,6 +69,10 @@ The cortex will periodically request **5000 RPM** (above the 3000 RPM limit). Wa
 
 ## 🏗️ Architecture
 
+<p align="center">
+  <img src="docs/assets/data-journey.png" alt="NeuroPLC Data Journey" width="600">
+</p>
+
 ### Crate Structure
 
 | Crate | Purpose | Key Types |
