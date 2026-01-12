@@ -1,0 +1,17 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/core-spine",
+    "crates/neuro-plc",
+]
+default-members = ["crates/neuro-plc"]
+
+[workspace.package]
+edition = "2021"
+license = "MIT OR Apache-2.0"
+
+[workspace.dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+log = "0.4"
+thiserror = "1.0"

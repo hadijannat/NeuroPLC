@@ -1,0 +1,194 @@
+import base64
+import json
+import urllib.error
+import urllib.request
+from dataclasses import dataclass
+from datetime import datetime, timezone
+from typing import Any, Optional, Tuple
+
+
+@dataclass(frozen=True)
+class BasyxConfig:
+    base_url: str = "http://localhost:8081"
+    aas_id: str = "urn:neuroplc:aas:motor:001"
+    asset_id: str = "urn:neuroplc:asset:motor:001"
+    operational_submodel_id: str = "urn:neuroplc:sm:operational-data:001"
+    ai_submodel_id: str = "urn:neuroplc:sm:ai-recommendation:001"
+    safety_submodel_id: str = "urn:neuroplc:sm:safety-parameters:001"
+    operational_semantic_id: str = "urn:neuroplc:sm:OperationalData:1:0"
+    ai_semantic_id: str = "urn:neuroplc:sm:AIRecommendation:1:0"
+    safety_semantic_id: str = "urn:neuroplc:sm:SafetyParameters:1:0"
+    timeout_s: float = 2.0
+
+
+class BasyxAdapter:
+    def __init__(self, config: BasyxConfig):
+        self.config = config
+        self.base_url = config.base_url.rstrip("/")
+
+    def ensure_models(self) -> None:
+        self._ensure_aas()
+        self._ensure_submodel(
+            self.config.operational_submodel_id,
+            "OperationalData",
+            [
+                self._prop("MotorSpeedRPM", "DOUBLE", 0.0),
+                self._prop("MotorTemperatureC", "DOUBLE", 25.0),
+                self._prop("SystemPressureBar", "DOUBLE", 1.0),
+                self._prop("LastUpdate", "DATE_TIME", self._now_iso()),
+                self._prop("CycleCount", "LONG", 0),
+                self._prop("IsHealthy", "BOOLEAN", True),
+                self._prop("CycleJitterUs", "LONG", 0),
+            ],
+            semantic_id=self.config.operational_semantic_id,
+        )
+        self._ensure_submodel(
+            self.config.ai_submodel_id,
+            "AIRecommendation",
+            [
+                self._prop("RecommendedSpeedRPM", "DOUBLE", 0.0),
+                self._prop("ConfidenceScore", "DOUBLE", 0.0),
+                self._prop("ReasoningHash", "STRING", ""),
+                self._prop("RecommendationTimestamp", "DATE_TIME", self._now_iso()),
+            ],
+            semantic_id=self.config.ai_semantic_id,
+        )
+        self._ensure_submodel(
+            self.config.safety_submodel_id,
+            "SafetyParameters",
+            [
+                self._prop("MaxSpeedRPM", "DOUBLE", 3000.0),
+                self._prop("MinSpeedRPM", "DOUBLE", 0.0),
+                self._prop("MaxTemperatureC", "DOUBLE", 80.0),
+                self._prop("MaxRateChangeRPM", "DOUBLE", 50.0),
+            ],
+            semantic_id=self.config.safety_semantic_id,
+        )
+
+        self._ensure_submodel_link(self.config.operational_submodel_id)
+        self._ensure_submodel_link(self.config.ai_submodel_id)
+        self._ensure_submodel_link(self.config.safety_submodel_id)
+
+    def update_operational(self, state: dict, cycle_count: int, is_healthy: bool) -> None:
+        submodel_id = self.config.operational_submodel_id
+        self._put_property(submodel_id, "MotorSpeedRPM", "DOUBLE", float(state.get("motor_speed_rpm", 0.0)))
+        self._put_property(
+            submodel_id, "MotorTemperatureC", "DOUBLE", float(state.get("motor_temp_c", 0.0))
+        )
+        self._put_property(
+            submodel_id, "SystemPressureBar", "DOUBLE", float(state.get("pressure_bar", 0.0))
+        )
+        self._put_property(submodel_id, "LastUpdate", "DATE_TIME", self._now_iso())
+        self._put_property(submodel_id, "CycleCount", "LONG", int(cycle_count))
+        self._put_property(submodel_id, "IsHealthy", "BOOLEAN", bool(is_healthy))
+        self._put_property(
+            submodel_id, "CycleJitterUs", "LONG", int(state.get("cycle_jitter_us", 0))
+        )
+
+    def update_recommendation(self, target_speed: float, confidence: float, reasoning_hash: str) -> None:
+        submodel_id = self.config.ai_submodel_id
+        self._put_property(submodel_id, "RecommendedSpeedRPM", "DOUBLE", float(target_speed))
+        self._put_property(submodel_id, "ConfidenceScore", "DOUBLE", float(confidence))
+        self._put_property(submodel_id, "ReasoningHash", "STRING", reasoning_hash)
+        self._put_property(submodel_id, "RecommendationTimestamp", "DATE_TIME", self._now_iso())
+
+    def _ensure_aas(self) -> None:
+        status, _ = self._request_json("GET", f"/shells/{self._b64(self.config.aas_id)}")
+        if status == 404:
+            aas = {
+                "id": self.config.aas_id,
+                "idShort": "NeuroPLC",
+                "assetInformation": {
+                    "assetKind": "INSTANCE",
+                    "globalAssetId": self.config.asset_id,
+                },
+                "submodels": [],
+            }
+            self._request_json("POST", "/shells", aas)
+
+    def _ensure_submodel(
+        self,
+        submodel_id: str,
+        id_short: str,
+        elements: list[dict],
+        semantic_id: Optional[str] = None,
+    ) -> None:
+        status, _ = self._request_json("GET", f"/submodels/{self._b64(submodel_id)}")
+        if status == 404:
+            submodel = {
+                "id": submodel_id,
+                "idShort": id_short,
+                "kind": "INSTANCE",
+                "submodelElements": elements,
+            }
+            if semantic_id:
+                submodel["semanticId"] = {
+                    "keys": [{"type": "GLOBAL_REFERENCE", "value": semantic_id}]
+                }
+            self._request_json("POST", "/submodels", submodel)
+
+    def _ensure_submodel_link(self, submodel_id: str) -> None:
+        status, aas = self._request_json("GET", f"/shells/{self._b64(self.config.aas_id)}")
+        if status != 200 or not isinstance(aas, dict):
+            return
+        refs = aas.get("submodels") or []
+        for ref in refs:
+            keys = ref.get("keys", []) if isinstance(ref, dict) else []
+            for key in keys:
+                if key.get("type") == "SUBMODEL" and key.get("value") == submodel_id:
+                    return
+        refs.append(
+            {
+                "type": "MODEL_REFERENCE",
+                "keys": [{"type": "SUBMODEL", "value": submodel_id}],
+            }
+        )
+        aas["submodels"] = refs
+        self._request_json("PUT", f"/shells/{self._b64(self.config.aas_id)}", aas)
+
+    def _put_property(self, submodel_id: str, id_short: str, value_type: str, value: Any) -> None:
+        prop = self._prop(id_short, value_type, value)
+        self._request_json(
+            "PUT",
+            f"/submodels/{self._b64(submodel_id)}/submodel-elements/{id_short}",
+            prop,
+        )
+
+    def _request_json(self, method: str, path: str, payload: Optional[dict] = None) -> Tuple[int, Any]:
+        url = self.base_url + path
+        data = None
+        headers = {"Content-Type": "application/json"}
+        if payload is not None:
+            data = json.dumps(payload).encode("utf-8")
+        req = urllib.request.Request(url, data=data, headers=headers, method=method)
+        try:
+            with urllib.request.urlopen(req, timeout=self.config.timeout_s) as resp:
+                raw = resp.read()
+                if not raw:
+                    return resp.status, None
+                return resp.status, json.loads(raw.decode("utf-8"))
+        except urllib.error.HTTPError as err:
+            raw = err.read()
+            if raw:
+                try:
+                    return err.code, json.loads(raw.decode("utf-8"))
+                except json.JSONDecodeError:
+                    return err.code, raw.decode("utf-8", errors="ignore")
+            return err.code, None
+
+    @staticmethod
+    def _b64(value: str) -> str:
+        return base64.urlsafe_b64encode(value.encode("utf-8")).decode("utf-8")
+
+    @staticmethod
+    def _prop(id_short: str, value_type: str, value: Any) -> dict:
+        return {
+            "idShort": id_short,
+            "modelType": "Property",
+            "valueType": value_type,
+            "value": value,
+        }
+
+    @staticmethod
+    def _now_iso() -> str:
+        return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")

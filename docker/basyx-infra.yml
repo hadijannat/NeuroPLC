@@ -1,0 +1,14 @@
+infrastructures:
+  default: neuroplc-local
+
+  neuroplc-local:
+    name: NeuroPLC Local
+    components:
+      aasRepository:
+        baseUrl: "http://basyx-env:8081"
+      submodelRepository:
+        baseUrl: "http://basyx-env:8081"
+      conceptDescriptionRepository:
+        baseUrl: "http://basyx-env:8081"
+    security:
+      type: none

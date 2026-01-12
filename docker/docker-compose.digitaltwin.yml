@@ -1,0 +1,18 @@
+services:
+  basyx-env:
+    image: eclipsebasyx/aas-environment:2.0.0-SNAPSHOT-2b17672
+    ports:
+      - "8081:8081"
+    restart: unless-stopped
+
+  basyx-gui:
+    image: eclipsebasyx/aas-gui:SNAPSHOT-c58aa3c
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./basyx-infra.yml:/basyx-infra.yml:ro
+    environment:
+      - VITE_ENDPOINT_CONFIG_AVAILABLE=false
+    depends_on:
+      - basyx-env
+    restart: unless-stopped

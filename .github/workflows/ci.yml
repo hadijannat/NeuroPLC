@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  rust:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Format
+        run: cargo fmt -- --check
+      - name: Clippy
+        run: cargo clippy --all-targets -- -D warnings
+      - name: Test
+        run: cargo test
+      - name: Opcua compile check
+        run: cargo check -p neuro-plc --features opcua
+      - name: OPC UA smoke
+        run: |
+          cargo run --release --features opcua --bin neuro-plc -- --opcua --no-bridge --run-seconds 5 &
+          SERVER_PID=$!
+          sleep 1
+          cargo run --release --features opcua --bin opcua_smoke -- opc.tcp://127.0.0.1:4840
+          wait $SERVER_PID
+      - name: Rerun compile check
+        run: cargo check -p neuro-plc --features rerun
+      - name: Simulation smoke
+        run: cargo run --release -- --run-seconds 1 --no-bridge
+
+  python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Byte-compile
+        run: python -m compileall python-cortex/src
