@@ -90,3 +90,23 @@ impl SafetySupervisor {
         true
     }
 }
+
+impl SafetyState {
+    pub const fn as_str(&self) -> &'static str {
+        match self {
+            SafetyState::Normal => "normal",
+            SafetyState::Degraded => "degraded",
+            SafetyState::Trip => "trip",
+            SafetyState::Safe => "safe",
+        }
+    }
+
+    pub const fn as_u8(&self) -> u8 {
+        match self {
+            SafetyState::Normal => 0,
+            SafetyState::Degraded => 1,
+            SafetyState::Trip => 2,
+            SafetyState::Safe => 3,
+        }
+    }
+}

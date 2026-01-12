@@ -41,6 +41,13 @@ pub const TIMESTAMP_US: Tag = Tag {
     rerun_path: "system/timestamp_us",
 };
 
+pub const SAFETY_STATE: Tag = Tag {
+    key: "safety_state",
+    metric: "neuroplc_safety_state",
+    opcua_node: "SafetyState",
+    rerun_path: "system/safety_state",
+};
+
 pub const AGENT_TARGET_RPM: Tag = Tag {
     key: "agent_target_rpm",
     metric: "neuroplc_agent_target_rpm",

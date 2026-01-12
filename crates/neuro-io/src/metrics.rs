@@ -201,6 +201,17 @@ pub static BRIDGE_CONNECTED: LazyLock<Gauge> = LazyLock::new(|| {
     gauge
 });
 
+/// Safety state (0=normal,1=degraded,2=trip,3=safe)
+pub static SAFETY_STATE: LazyLock<Gauge> = LazyLock::new(|| {
+    let gauge = Gauge::new(
+        tags::SAFETY_STATE.metric,
+        "Safety state (0=normal,1=degraded,2=trip,3=safe)",
+    )
+    .unwrap();
+    REGISTRY.register(Box::new(gauge.clone())).unwrap();
+    gauge
+});
+
 // ============================================================================
 // Metrics HTTP Server
 // ============================================================================
@@ -286,4 +297,5 @@ pub fn init_metrics() {
     let _ = AGENT_CONFIDENCE.get();
     let _ = AGENT_TARGET_RPM.get();
     let _ = BRIDGE_CONNECTED.get();
+    let _ = SAFETY_STATE.get();
 }

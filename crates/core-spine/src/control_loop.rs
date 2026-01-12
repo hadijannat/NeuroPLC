@@ -151,6 +151,7 @@ impl<IO: MachineIO> IronThread<IO> {
             self.exchange.publish_state(ProcessSnapshot {
                 timestamp_us,
                 cycle_count: self.stats.cycles_executed,
+                safety_state: self.stats.safety_state,
                 motor_speed_rpm: current_speed,
                 motor_temp_c: current_temp,
                 pressure_bar: current_pressure,

@@ -1,7 +1,7 @@
 use core_spine::StateExchange;
 use neuro_io::metrics::{
     init_metrics, serve_metrics, AGENT_CONFIDENCE, AGENT_TARGET_RPM, CYCLES_EXECUTED,
-    CYCLE_JITTER_US, MOTOR_SPEED_RPM, MOTOR_TEMP_C, PRESSURE_BAR,
+    CYCLE_JITTER_US, MOTOR_SPEED_RPM, MOTOR_TEMP_C, PRESSURE_BAR, SAFETY_STATE,
 };
 use std::sync::{atomic::AtomicBool, Arc};
 use std::thread;
@@ -31,6 +31,7 @@ pub fn start_metrics_updater(
             MOTOR_TEMP_C.set(snapshot.motor_temp_c);
             PRESSURE_BAR.set(snapshot.pressure_bar);
             CYCLE_JITTER_US.observe(snapshot.cycle_jitter_us as f64);
+            SAFETY_STATE.set(snapshot.safety_state.as_u8() as f64);
             if snapshot.cycle_count > last_cycle_count {
                 let delta = snapshot.cycle_count - last_cycle_count;
                 CYCLES_EXECUTED.inc_by(delta as u64);

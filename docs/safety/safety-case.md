@@ -13,6 +13,7 @@ NeuroPLC follows a reduced IEC 61508 V-model lifecycle with the following artifa
 - Architectural controls: **Section 3.2**
 - Verification & validation: **Section 4**
 - Evidence + auditability: **Section 5**
+- Evidence index: `docs/safety/evidence-index.md`
 
 ### 1.2 Safety Functions
 
@@ -43,6 +44,9 @@ NeuroPLC follows a reduced IEC 61508 V-model lifecycle with the following artifa
 | Bridge timeout | Stale recommendations | Timeout age check | SF-05 + degraded mode |
 | Jitter spikes | Control instability | Jitter threshold monitoring | Trip after repeated violation |
 | Sensor non-finite | Undefined control | Sensor sanity checks | SF-04 |
+| Auth replay | Unauthorized command | HMAC + nonce replay window | Reject token + audit |
+| Over-temp | Thermal runaway | Interlock check | SF-03 |
+| Overspeed | Mechanical stress | Limit check | SF-01 |
 
 ## 3. Safety Requirements
 

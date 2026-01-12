@@ -32,6 +32,12 @@ pub struct RuntimeConfig {
     pub opcua_user: Option<String>,
     #[cfg(feature = "opcua")]
     pub opcua_password: Option<String>,
+    #[cfg(feature = "opcua")]
+    pub opcua_allow_write: bool,
+    #[cfg(feature = "opcua")]
+    pub opcua_pki_dir: String,
+    #[cfg(feature = "opcua")]
+    pub opcua_create_sample_keypair: bool,
     #[cfg(feature = "rerun")]
     pub rerun_enabled: bool,
     #[cfg(feature = "rerun")]
@@ -71,6 +77,12 @@ impl Default for RuntimeConfig {
             opcua_user: None,
             #[cfg(feature = "opcua")]
             opcua_password: None,
+            #[cfg(feature = "opcua")]
+            opcua_allow_write: false,
+            #[cfg(feature = "opcua")]
+            opcua_pki_dir: "./pki-server".to_string(),
+            #[cfg(feature = "opcua")]
+            opcua_create_sample_keypair: true,
             #[cfg(feature = "rerun")]
             rerun_enabled: false,
             #[cfg(feature = "rerun")]
@@ -217,6 +229,21 @@ impl RuntimeConfig {
                         i += 1;
                     }
                 }
+                #[cfg(feature = "opcua")]
+                "--opcua-allow-write" => {
+                    cfg.opcua_allow_write = true;
+                }
+                #[cfg(feature = "opcua")]
+                "--opcua-pki-dir" => {
+                    if i + 1 < args.len() {
+                        cfg.opcua_pki_dir = args[i + 1].clone();
+                        i += 1;
+                    }
+                }
+                #[cfg(feature = "opcua")]
+                "--opcua-no-sample-keypair" => {
+                    cfg.opcua_create_sample_keypair = false;
+                }
                 #[cfg(feature = "rerun")]
                 "--rerun" => {
                     cfg.rerun_enabled = true;
@@ -272,6 +299,9 @@ OPTIONS:
     --opcua-no-anon         Disable anonymous OPC UA user token
     --opcua-user <USER>     OPC UA username for password auth
     --opcua-password <PW>   OPC UA password for user auth
+    --opcua-allow-write     Allow OPC UA write access (default: read-only)
+    --opcua-pki-dir <PATH>  OPC UA PKI directory [default: ./pki-server]
+    --opcua-no-sample-keypair Disable generating sample OPC UA keypair
     --rerun                 Enable Rerun visualization (requires 'rerun' feature)
     --rerun-save <PATH>     Save Rerun recording to file
     -h, --help              Print this help message

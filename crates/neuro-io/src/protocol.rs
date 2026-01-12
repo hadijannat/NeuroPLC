@@ -7,6 +7,7 @@ pub const STATE_TAGS: &[tags::Tag] = &[
     tags::PRESSURE_BAR,
     tags::CYCLE_JITTER_US,
     tags::TIMESTAMP_US,
+    tags::SAFETY_STATE,
 ];
 
 #[derive(Debug, Clone, Copy, Default, Deserialize, Serialize, PartialEq, Eq)]
@@ -33,6 +34,7 @@ pub struct StateMsg {
     pub sequence: u64,
     pub timestamp_us: u64,
     pub cycle_count: u64,
+    pub safety_state: &'static str,
     pub unix_us: u64,
     pub motor_speed_rpm: f64,
     pub motor_temp_c: f64,

@@ -27,3 +27,13 @@ See: `recommendation-v1.schema.json`
 The spine publishes state on a fixed interval. The schema is forward-compatible:
 clients should ignore unknown fields.
 
+See: `state-v1.schema.json`
+
+## Protobuf option
+
+The protobuf schema is available at `proto/neuroplc.proto`. Enable the optional
+`proto` feature in `neuro-io` to generate Rust types via `prost`:
+
+```
+cargo build -p neuro-io --features proto
+```

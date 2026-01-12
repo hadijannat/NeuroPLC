@@ -183,6 +183,9 @@ pub fn run(config: RuntimeConfig) {
         opcua_config.allow_anonymous = config.opcua_allow_anonymous;
         opcua_config.username = config.opcua_user.clone();
         opcua_config.password = config.opcua_password.clone();
+        opcua_config.pki_dir = config.opcua_pki_dir.clone();
+        opcua_config.create_sample_keypair = config.opcua_create_sample_keypair;
+        opcua_config.allow_write = config.opcua_allow_write;
         info!(endpoint = %opcua_config.endpoint, "Starting OPC UA server");
         Some(run_opcua(
             Arc::clone(&exchange),
@@ -371,6 +374,18 @@ fn hash_runtime_config(config: &RuntimeConfig) -> String {
         summary.insert(
             "opcua_user_configured".to_string(),
             serde_json::Value::Bool(config.opcua_user.is_some()),
+        );
+        summary.insert(
+            "opcua_allow_write".to_string(),
+            serde_json::Value::Bool(config.opcua_allow_write),
+        );
+        summary.insert(
+            "opcua_pki_dir".to_string(),
+            config.opcua_pki_dir.clone().into(),
+        );
+        summary.insert(
+            "opcua_create_sample_keypair".to_string(),
+            serde_json::Value::Bool(config.opcua_create_sample_keypair),
         );
     }
 

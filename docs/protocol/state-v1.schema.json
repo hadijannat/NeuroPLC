@@ -1,0 +1,42 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "NeuroPLC State v1",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "type",
+    "protocol_version",
+    "sequence",
+    "timestamp_us",
+    "cycle_count",
+    "safety_state",
+    "unix_us",
+    "motor_speed_rpm",
+    "motor_temp_c",
+    "pressure_bar",
+    "cycle_jitter_us"
+  ],
+  "properties": {
+    "type": { "const": "state" },
+    "protocol_version": {
+      "type": "object",
+      "required": ["major", "minor"],
+      "properties": {
+        "major": { "type": "integer", "minimum": 1 },
+        "minor": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "sequence": { "type": "integer", "minimum": 1 },
+    "timestamp_us": { "type": "integer", "minimum": 0 },
+    "cycle_count": { "type": "integer", "minimum": 0 },
+    "safety_state": {
+      "type": "string",
+      "enum": ["normal", "degraded", "trip", "safe"]
+    },
+    "unix_us": { "type": "integer", "minimum": 0 },
+    "motor_speed_rpm": { "type": "number" },
+    "motor_temp_c": { "type": "number" },
+    "pressure_bar": { "type": "number" },
+    "cycle_jitter_us": { "type": "integer", "minimum": 0 }
+  }
+}

@@ -3,6 +3,8 @@ pub mod bridge;
 pub mod hal_modbus;
 pub mod metrics;
 pub mod protocol;
+#[cfg(feature = "proto")]
+pub mod protocol_proto;
 pub mod tls;
 
 pub use auth::{AuthConfig, AuthError, TokenClaims, TokenValidator};

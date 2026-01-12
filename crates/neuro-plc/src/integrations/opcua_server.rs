@@ -1,6 +1,7 @@
 #![cfg(feature = "opcua")]
 
 use core_spine::{tags, StateExchange, TimeBase};
+use opcua::server::address_space::{AccessLevel, UserAccessLevel};
 use opcua::server::config::{ServerEndpoint, ServerUserToken, ANONYMOUS_USER_TOKEN_ID};
 use opcua::server::prelude::*;
 use std::sync::{atomic::AtomicBool, Arc};
@@ -16,6 +17,9 @@ pub struct OpcuaConfig {
     pub allow_anonymous: bool,
     pub username: Option<String>,
     pub password: Option<String>,
+    pub pki_dir: String,
+    pub create_sample_keypair: bool,
+    pub allow_write: bool,
 }
 
 impl Default for OpcuaConfig {
@@ -27,6 +31,9 @@ impl Default for OpcuaConfig {
             allow_anonymous: true,
             username: None,
             password: None,
+            pki_dir: "./pki-server".to_string(),
+            create_sample_keypair: true,
+            allow_write: false,
         }
     }
 }
@@ -83,8 +90,8 @@ pub fn run_opcua(
         .application_name("NeuroPLC OPC UA")
         .application_uri("urn:neuroplc:opcua")
         .product_uri("urn:neuroplc:opcua")
-        .create_sample_keypair(true)
-        .pki_dir("./pki-server")
+        .create_sample_keypair(config.create_sample_keypair)
+        .pki_dir(&config.pki_dir)
         .host_and_port(host.clone(), port)
         .max_array_length(100_000)
         .max_string_length(64 * 1024)
@@ -108,11 +115,23 @@ pub fn run_opcua(
             .add_folder("NeuroPLC", "NeuroPLC", &objects)
             .unwrap_or_else(|_| NodeId::objects_folder_id());
 
+        let access_level = if config.allow_write {
+            AccessLevel::CURRENT_READ | AccessLevel::CURRENT_WRITE
+        } else {
+            AccessLevel::CURRENT_READ
+        };
+        let user_access_level = if config.allow_write {
+            UserAccessLevel::CURRENT_READ | UserAccessLevel::CURRENT_WRITE
+        } else {
+            UserAccessLevel::CURRENT_READ
+        };
+
         let speed_id = NodeId::new(ns, tags::MOTOR_SPEED_RPM.opcua_node);
         let temp_id = NodeId::new(ns, tags::MOTOR_TEMP_C.opcua_node);
         let pressure_id = NodeId::new(ns, tags::PRESSURE_BAR.opcua_node);
         let jitter_id = NodeId::new(ns, tags::CYCLE_JITTER_US.opcua_node);
         let timestamp_id = NodeId::new(ns, tags::TIMESTAMP_US.opcua_node);
+        let safety_state_id = NodeId::new(ns, tags::SAFETY_STATE.opcua_node);
         let agent_target_id = NodeId::new(ns, tags::AGENT_TARGET_RPM.opcua_node);
         let agent_conf_id = NodeId::new(ns, tags::AGENT_CONFIDENCE.opcua_node);
 
@@ -124,6 +143,8 @@ pub fn run_opcua(
             )
             .data_type(DataTypeId::Double)
             .value(0.0)
+            .access_level(access_level)
+            .user_access_level(user_access_level)
             .build(),
             VariableBuilder::new(
                 &temp_id,
@@ -132,6 +153,8 @@ pub fn run_opcua(
             )
             .data_type(DataTypeId::Double)
             .value(0.0)
+            .access_level(access_level)
+            .user_access_level(user_access_level)
             .build(),
             VariableBuilder::new(
                 &pressure_id,
@@ -140,6 +163,8 @@ pub fn run_opcua(
             )
             .data_type(DataTypeId::Double)
             .value(0.0)
+            .access_level(access_level)
+            .user_access_level(user_access_level)
             .build(),
             VariableBuilder::new(
                 &jitter_id,
@@ -148,6 +173,8 @@ pub fn run_opcua(
             )
             .data_type(DataTypeId::UInt32)
             .value(0u32)
+            .access_level(access_level)
+            .user_access_level(user_access_level)
             .build(),
             VariableBuilder::new(
                 &timestamp_id,
@@ -156,6 +183,18 @@ pub fn run_opcua(
             )
             .data_type(DataTypeId::UInt64)
             .value(0u64)
+            .access_level(access_level)
+            .user_access_level(user_access_level)
+            .build(),
+            VariableBuilder::new(
+                &safety_state_id,
+                tags::SAFETY_STATE.opcua_node,
+                tags::SAFETY_STATE.opcua_node,
+            )
+            .data_type(DataTypeId::UInt32)
+            .value(0u32)
+            .access_level(access_level)
+            .user_access_level(user_access_level)
             .build(),
             VariableBuilder::new(
                 &agent_target_id,
@@ -164,6 +203,8 @@ pub fn run_opcua(
             )
             .data_type(DataTypeId::Double)
             .value(0.0)
+            .access_level(access_level)
+            .user_access_level(user_access_level)
             .build(),
             VariableBuilder::new(
                 &agent_conf_id,
@@ -172,6 +213,8 @@ pub fn run_opcua(
             )
             .data_type(DataTypeId::Double)
             .value(0.0)
+            .access_level(access_level)
+            .user_access_level(user_access_level)
             .build(),
         ];
 
@@ -186,6 +229,7 @@ pub fn run_opcua(
                 pressure_id,
                 jitter_id,
                 timestamp_id,
+                safety_state_id,
                 agent_target_id,
                 agent_conf_id,
             },
@@ -211,6 +255,12 @@ pub fn run_opcua(
             space.set_variable_value(&nodes.pressure_id, snapshot.pressure_bar, &now, &now);
             space.set_variable_value(&nodes.jitter_id, snapshot.cycle_jitter_us, &now, &now);
             space.set_variable_value(&nodes.timestamp_id, snapshot.timestamp_us, &now, &now);
+            space.set_variable_value(
+                &nodes.safety_state_id,
+                snapshot.safety_state.as_u8() as u32,
+                &now,
+                &now,
+            );
 
             if let Some(r) = rec {
                 if let Some(target) = r.target_speed_rpm {
@@ -240,6 +290,7 @@ struct NodeIds {
     pressure_id: NodeId,
     jitter_id: NodeId,
     timestamp_id: NodeId,
+    safety_state_id: NodeId,
     agent_target_id: NodeId,
     agent_conf_id: NodeId,
 }

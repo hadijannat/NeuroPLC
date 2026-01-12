@@ -244,6 +244,7 @@ pub fn run_bridge(
                     sequence: state_sequence,
                     timestamp_us: snapshot.timestamp_us,
                     cycle_count: snapshot.cycle_count,
+                    safety_state: snapshot.safety_state.as_str(),
                     unix_us: timebase.unix_us(),
                     motor_speed_rpm: snapshot.motor_speed_rpm,
                     motor_temp_c: snapshot.motor_temp_c,

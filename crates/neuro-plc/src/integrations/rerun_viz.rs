@@ -75,6 +75,10 @@ fn log_snapshot(rec: &RecordingStream, exchange: &StateExchange, timebase: &Time
         tags::CYCLE_JITTER_US.rerun_path,
         &Scalar::new(snapshot.cycle_jitter_us as f64),
     );
+    let _ = rec.log(
+        tags::SAFETY_STATE.rerun_path,
+        &Scalar::new(snapshot.safety_state.as_u8() as f64),
+    );
 
     if let Some(rec_msg) = exchange.get_recommendation(timebase.now_us()) {
         if let Some(target) = rec_msg.target_speed_rpm {
