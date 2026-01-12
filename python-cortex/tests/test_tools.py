@@ -52,8 +52,8 @@ class TestToolDefinitions:
 
     def test_tool_definitions_count(self):
         tools = tool_definitions()
-        # Should have 7 tools: original 4 + 3 extended
-        assert len(tools) == 7
+        # Should have 11 tools: original 4 + 3 extended + 4 memory tools
+        assert len(tools) == 11
 
     def test_tool_definitions_structure(self):
         tools = tool_definitions()
@@ -75,6 +75,11 @@ class TestToolDefinitions:
             "get_speed_trend",
             "get_temp_trend",
             "query_digital_twin",
+            # Memory tools
+            "query_decision_history",
+            "get_similar_scenarios",
+            "get_decision_outcome",
+            "record_feedback",
         }
         assert names == expected
 

@@ -21,6 +21,11 @@ from agent.llm_engine import (
     try_llm_recommendation,
     try_langgraph_recommendation,
 )
+from agent.memory import (
+    DecisionRecord,
+    get_decision_store,
+    get_observation_buffer,
+)
 try:
     from agent.ml_inference import MLRecommendationEngine, SafetyBoundedRecommender
 except ImportError:
@@ -161,6 +166,13 @@ def run(host: str, port: int, attack_mode: bool, model_path: Optional[str] = Non
         )
         basyx_adapter = BasyxAdapter(basyx_config)
 
+    # Initialize memory system
+    memory_enabled = os.getenv("NEUROPLC_MEMORY_ENABLED", "1") in ("1", "true", "yes")
+    decision_store = get_decision_store(enabled=memory_enabled)
+    observation_buffer = get_observation_buffer() if memory_enabled else None
+    if memory_enabled:
+        print(f"Memory system enabled (DB: {decision_store.db_path})")
+
     auth_secret = os.getenv("NEUROPLC_AUTH_SECRET")
     auth_issuer = os.getenv("NEUROPLC_AUTH_ISSUER", "neuroplc")
     auth_audience = os.getenv("NEUROPLC_AUTH_AUDIENCE", "neuroplc-spine")
@@ -276,9 +288,12 @@ def run(host: str, port: int, attack_mode: bool, model_path: Optional[str] = Non
                         # LangGraph workflow engine
                         now = time.time()
                         if (now - last_llm_at) * 1000.0 >= decision_period_ms:
+                            # Use observation buffer history if available
+                            speed_hist = observation_buffer.speed_history if observation_buffer else []
+                            temp_hist = observation_buffer.temp_history if observation_buffer else []
                             last_llm_meta = try_langgraph_recommendation(
                                 obs, constraints, last_llm_candidate,
-                                speed_history=[], temp_history=[],
+                                speed_history=speed_hist, temp_history=temp_hist,
                                 basyx_adapter=basyx_adapter,
                             )
                             if last_llm_meta:
@@ -357,6 +372,33 @@ def run(host: str, port: int, attack_mode: bool, model_path: Optional[str] = Non
                                 )
                         except OSError:
                             pass
+
+                    # Record to memory system
+                    if observation_buffer is not None:
+                        observation_buffer.add(obs, now_unix_us)
+
+                    if decision_store is not None:
+                        try:
+                            decision_record = DecisionRecord(
+                                trace_id=trace_id,
+                                timestamp_unix_us=now_unix_us,
+                                observation=obs,
+                                candidate=candidate,
+                                constraints=constraints,
+                                engine=envelope.get("engine", "baseline"),
+                                model=envelope.get("model"),
+                                llm_latency_ms=envelope.get("llm_latency_ms"),
+                                llm_output_hash=envelope.get("llm_output_hash"),
+                                approved=rec.approved,
+                                violations=rec.violations,
+                                warnings=rec.warnings,
+                                tool_traces=envelope.get("tool_traces", []),
+                            )
+                            decision_store.record_decision(decision_record)
+                        except Exception as e:
+                            # Non-critical, fail silently but log once
+                            if cycle == 1:
+                                print(f"Memory recording failed: {e}")
 
                     sequence += 1
                     issued_at_unix_us = int(time.time() * 1_000_000)

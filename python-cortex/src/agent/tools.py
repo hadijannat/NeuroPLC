@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import statistics
+import time
 from dataclasses import dataclass, field
 from typing import Any, Optional, TYPE_CHECKING
 
@@ -9,6 +10,7 @@ from .schemas import Constraints, RecommendationCandidate, StateObservation
 
 if TYPE_CHECKING:
     from digital_twin import BasyxAdapter
+    from .memory.store import DecisionStore
 
 
 @dataclass
@@ -126,6 +128,94 @@ def tool_definitions() -> list[dict]:
                 },
             },
         },
+        # Memory tools for learning from past decisions
+        {
+            "type": "function",
+            "function": {
+                "name": "query_decision_history",
+                "description": "Query past decisions made by the agent. Useful for understanding patterns and learning from past recommendations.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "metric": {
+                            "type": "string",
+                            "enum": ["speed", "temp", "all"],
+                            "description": "Filter by metric type. 'all' returns all metrics.",
+                            "default": "all",
+                        },
+                        "time_range_minutes": {
+                            "type": "integer",
+                            "description": "Look back this many minutes (default: 60)",
+                            "default": 60,
+                        },
+                        "limit": {
+                            "type": "integer",
+                            "description": "Maximum decisions to return (default: 10)",
+                            "default": 10,
+                        },
+                    },
+                },
+            },
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "get_similar_scenarios",
+                "description": "Find similar past scenarios to the current observation. Returns past decisions with similar sensor readings and their outcomes.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "k": {
+                            "type": "integer",
+                            "description": "Number of similar scenarios to find (default: 5)",
+                            "default": 5,
+                        },
+                    },
+                },
+            },
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "get_decision_outcome",
+                "description": "Get the outcome of a past decision. Shows whether it was accepted and what actually happened.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "trace_id": {
+                            "type": "string",
+                            "description": "The trace ID of the decision to look up",
+                        },
+                    },
+                    "required": ["trace_id"],
+                },
+            },
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "record_feedback",
+                "description": "Record feedback about a decision outcome. Use this to note whether a decision worked well.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "trace_id": {
+                            "type": "string",
+                            "description": "The trace ID of the decision",
+                        },
+                        "success": {
+                            "type": "boolean",
+                            "description": "Whether the decision was successful",
+                        },
+                        "notes": {
+                            "type": "string",
+                            "description": "Optional notes about the outcome",
+                        },
+                    },
+                    "required": ["trace_id", "success"],
+                },
+            },
+        },
     ]
 
 
@@ -164,6 +254,62 @@ def execute_tool(name: str, args: dict, ctx: AgentContext) -> Any:
 
     if name == "query_digital_twin":
         return _query_digital_twin(args.get("property_name", ""), ctx)
+
+    # Memory tools
+    if name == "query_decision_history":
+        from .memory import query_decision_history as do_query
+
+        metric = args.get("metric", "all")
+        minutes = args.get("time_range_minutes", 60)
+        limit = args.get("limit", 10)
+
+        now_us = int(time.time() * 1_000_000)
+        start_us = now_us - (minutes * 60 * 1_000_000)
+
+        results = do_query(
+            metric=metric,
+            time_range_us=(start_us, now_us),
+            limit=limit,
+        )
+        return {
+            "count": len(results),
+            "decisions": results,
+        }
+
+    if name == "get_similar_scenarios":
+        from .memory import get_similar_scenarios as do_similar
+
+        k = args.get("k", 5)
+        results = do_similar(observation=ctx.obs, k=k)
+        return {
+            "count": len(results),
+            "scenarios": results,
+        }
+
+    if name == "get_decision_outcome":
+        from .memory import get_decision_outcome as do_outcome
+
+        trace_id = args.get("trace_id", "")
+        result = do_outcome(trace_id)
+        if result is None:
+            return {"error": f"Decision not found: {trace_id}"}
+        return result
+
+    if name == "record_feedback":
+        from .memory.store import OutcomeFeedback, get_decision_store
+
+        store = get_decision_store()
+        if store is None:
+            return {"error": "Memory system not available"}
+
+        feedback = OutcomeFeedback(
+            trace_id=args.get("trace_id", ""),
+            spine_accepted=args.get("success", False),
+            notes=args.get("notes"),
+            outcome_timestamp_us=int(time.time() * 1_000_000),
+        )
+        updated = store.record_feedback(feedback)
+        return {"success": updated}
 
     raise ValueError(f"Unknown tool: {name}")
 
