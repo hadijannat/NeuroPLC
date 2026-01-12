@@ -67,7 +67,11 @@ mod enabled {
         if debug {
             eprintln!(
                 "opcua_smoke: security={security_policy} mode={security_mode:?} user_token={}",
-                if user.is_some() { "username" } else { "anonymous" }
+                if user.is_some() {
+                    "username"
+                } else {
+                    "anonymous"
+                }
             );
         }
 
