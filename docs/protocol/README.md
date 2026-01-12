@@ -35,7 +35,7 @@ The protobuf schema is available at `proto/neuroplc.proto`. Enable the optional
 `proto` feature in `neuro-io` to generate Rust types via `prost`:
 
 ```
-cargo build -p neuro-io --features proto
+cargo build -p neuro-plc --features proto
 ```
 
 The protobuf wire format uses a 4-byte big-endian length prefix followed by a

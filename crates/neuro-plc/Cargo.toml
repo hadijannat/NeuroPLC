@@ -10,6 +10,7 @@ default = []
 opcua = ["dep:opcua"]
 rerun = ["dep:rerun"]
 dev-certs = ["neuro-io/dev-certs"]
+proto = ["neuro-io/proto"]
 
 [dependencies]
 core-spine = { path = "../core-spine" }
