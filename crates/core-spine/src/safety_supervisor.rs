@@ -1,17 +1,12 @@
 use crate::safety::{SafetyLimits, SafetyViolation, Setpoint};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum SafetyState {
+    #[default]
     Normal,
     Degraded,
     Trip,
     Safe,
-}
-
-impl Default for SafetyState {
-    fn default() -> Self {
-        Self::Normal
-    }
 }
 
 pub struct SafetySupervisor {
